@@ -1,0 +1,2 @@
+# 타겟 DB(raw_schema / edit_schema) 용 Oracle 컨테이너 자리.
+# 아직 비어 있다. 로컬에서 Oracle 을 띄울 필요가 생기면 여기에 docker-compose.yaml 을 둔다.

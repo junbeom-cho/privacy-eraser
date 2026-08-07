@@ -1,0 +1,29 @@
+# 프로젝트 정보 DB. 타겟(raw/edit) Oracle 은 infra/oracle 에 둔다.
+#
+#   docker compose -f infra/postgres/docker-compose.yaml --env-file .env up -d
+#
+# --env-file 이 필요한 이유: compose 는 .env 를 "compose 파일이 있는 디렉터리"에서 찾는다.
+# 이 파일이 infra/postgres 로 내려와서 루트 .env 가 자동으로 안 잡힌다.
+# name 을 고정하지 않으면 프로젝트명이 상위 폴더명(postgres)이 되어 볼륨 이름까지 바뀐다.
+name: privacy-protector
+
+services:
+  project-db:
+    image: postgres:18-alpine
+    container_name: privacy-protector-db
+    environment:
+      POSTGRES_DB: privacy_protector
+      POSTGRES_USER: privacy
+      POSTGRES_PASSWORD: ${PROJECT_DB_PASSWORD:-privacy}
+    ports:
+      - "5432:5432"
+    volumes:
+      - project-db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U privacy -d privacy_protector"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  project-db-data:

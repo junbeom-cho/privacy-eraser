@@ -18,7 +18,7 @@ PRD와 이 문서가 충돌하면 PRD가 우선이고, 코드 작업 전에 충�
 
 ## 명령어
 ```bash
-docker compose up -d     # 프로젝트 정보 DB(PostgreSQL) :5432
+docker compose -f infra/postgres/docker-compose.yaml --env-file .env up -d   # 프로젝트 정보 DB :5432
 ./mvnw test              # 테스트. DB 없이 전부 돈다
 ./mvnw spring-boot:run   # 백엔드 :8080. 로컬은 환경변수 없이 그냥 뜬다 (.env)
 npm --prefix frontend run dev     # 프론트 개발서버 :5173, /api 는 :8080 으로 프록시
@@ -28,6 +28,8 @@ npm --prefix frontend run build   # src/main/resources/static 으로 빌드 → 
 
 - `.env` 한 파일을 **Spring과 docker compose가 같이 읽는다.** Spring 쪽은 `optional:file:.env[.properties]`
   (`.env`와 `.properties`는 둘 다 `KEY=value`). 값이 한 곳에만 있으니 앱과 컨테이너가 어긋나지 않는다.
+  compose 쪽은 `--env-file .env`가 **반드시 필요하다.** compose 파일이 `infra/` 아래라 루트 `.env`를
+  자동으로 찾지 못한다. 빠뜨리면 조용히 기본값이 쓰여서 인증 실패가 난다.
 - 그래서 `.env`에는 **`KEY=value`만** 쓴다. YAML 문법을 넣으면 compose가 `.env`를 파싱하다 깨진다.
 - 시크릿이 새로 필요해지면 `.env.example`에 **주석 처리된 예시**를 함께 추가한다. 실제 값은 넣지 않는다.
 - `CREDENTIAL_SECRET`에는 절대 기본값을 주지 않는다 — 안 주면 기동이 막혀야 한다.
