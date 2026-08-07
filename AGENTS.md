@@ -8,15 +8,18 @@ PRD와 이 문서가 충돌하면 PRD가 우선이고, 코드 작업 전에 충�
 - Spring Boot **4.1.0**, Java **17**, Maven (wrapper)
 - Flyway (`flyway-database-oracle`), Oracle JDBC `ojdbc11`
 - MyBatis: `org.mybatis.spring.boot:mybatis-spring-boot-starter:4.1.0` (Boot 4 대응 라인. 3.0.x는 Boot 3용이므로 쓰지 않는다)
-- 프론트엔드: Vue 3 + Vite + SASS. `frontend/` 별도 디렉터리, 스타일은 SFC의 `<style lang="scss" scoped>`.
+- 프론트엔드: `frontend/` — Vue 3 + TypeScript + vue-router + Vite + `sass-embedded`
+- 설정 파일은 **yaml**(`application.yml`). `.properties`로 되돌리지 않는다.
 - Boot 3와 starter 이름이 다르다 (`spring-boot-starter-webmvc`, `spring-boot-starter-flyway`).
   의존성 추가 시 Boot 4 기준 이름을 확인하고, 기억에 의존해 Boot 3 이름을 쓰지 않는다.
 - Java 17 문법까지만. (record/sealed OK, virtual thread·Boot 3 이하 API 금지)
 
 ## 명령어
 ```bash
-./mvnw test              # 테스트 (DB 없이 돈다 — src/test/resources/application.properties 참고)
-./mvnw spring-boot:run   # 실행. PROJECT_DB_URL / PROJECT_DB_USER / PROJECT_DB_PASSWORD 환경변수 필요
+./mvnw test              # 테스트 (DB 없이 돈다 — src/test/resources/application.yml 참고)
+./mvnw spring-boot:run   # 백엔드 :8080. PROJECT_DB_URL / PROJECT_DB_USER / PROJECT_DB_PASSWORD 환경변수 필요
+npm --prefix frontend run dev     # 프론트 개발서버 :5173, /api 는 :8080 으로 프록시
+npm --prefix frontend run build   # src/main/resources/static 으로 빌드 → 백엔드가 그대로 서빙
 ```
 
 ## 코드 규칙
@@ -33,6 +36,13 @@ PRD와 이 문서가 충돌하면 PRD가 우선이고, 코드 작업 전에 충�
   사용자 입력 문자열을 그대로 넘기면 SQL injection이다. 검증은 한 곳에 모은다.
 - 매퍼는 XML 하나로 통일한다 (어노테이션 SQL과 섞지 않는다). 동적 SQL이 많은 프로젝트라 XML이 맞다.
 - 대량 복사는 한 건씩 INSERT 하지 않는다. `ExecutorType.BATCH` + fetch size 지정.
+
+## 프론트엔드
+- API 경로는 전부 `/api` 아래. dev 프록시와 prod 서빙이 이 접두사에 맞춰져 있다.
+- 스타일은 SFC의 `<style lang="scss" scoped>`. 전역 CSS 파일을 늘리지 않는다.
+- `src/main/resources/static/`은 빌드 산출물이라 gitignore 대상이다. 여기에 직접 파일을 만들지 않는다.
+- 상태관리 라이브러리(Pinia 등)는 아직 없다. props/emit으로 안 되는 상황이 실제로 생기면 그때 넣는다.
+- API 응답의 컬럼 값은 이미 마스킹된 값이다. 프론트에서 원본 값을 요청하거나 캐시하지 않는다.
 
 ## 도메인 규칙 (깨지면 안 되는 것)
 - 컬럼명은 `_` 기준으로 토큰 분리 후 키워드와 매칭한다 (`T_usr_mstr` → `t`,`usr`,`mstr`).
