@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: privacy-protector
+
+  # 1. 프로젝트 정보 DB - 앱 자체 설정(프로젝트/키워드/정책) 저장소. Flyway 대상은 이 DB 뿐이다.
+  # 2. raw_schema / 3. edit_schema 접속정보는 여기 적지 않는다. 프로젝트 레코드에 저장하고 런타임에 연결한다.
+  datasource:
+    url: ${PROJECT_DB_URL}
+    username: ${PROJECT_DB_USER}
+    password: ${PROJECT_DB_PASSWORD}
+
+  flyway:
+    baseline-on-migrate: true
+
+mybatis:
+  mapper-locations: classpath:mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
