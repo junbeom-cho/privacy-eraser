@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.promptech.privacy_protector.project.infrastructure.ProjectMapper">
+
+	<select id="nextProjectId" resultType="long">
+		SELECT nextval('project_seq')
+	</select>
+
+	<insert id="insert">
+		INSERT INTO project (
+			project_id, name,
+			raw_url, raw_username, raw_password, raw_schema,
+			edit_url, edit_username, edit_password, edit_schema
+		) VALUES (
+			#{id}, #{project.name},
+			#{project.rawConnection.url}, #{project.rawConnection.username}, #{rawPassword}, #{project.rawConnection.schema},
+			#{project.editConnection.url}, #{project.editConnection.username}, #{editPassword}, #{project.editConnection.schema}
+		)
+	</insert>
+
+	<select id="existsByName" resultType="boolean">
+		SELECT EXISTS (SELECT 1 FROM project WHERE name = #{name})
+	</select>
+
+</mapper>
