@@ -1,5 +1,0 @@
-# ponytail: 실제 DB 없이 컨텍스트만 뜨게 한다. DataSource가 없으면 Flyway/MyBatis 자동설정도 함께 빠진다.
-# 매퍼/마이그레이션 통합테스트가 필요해지면 이 파일을 지우고 Testcontainers(oracle-free)로 교체.
-spring:
-  autoconfigure:
-    exclude: org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration

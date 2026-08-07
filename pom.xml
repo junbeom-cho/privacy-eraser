@@ -29,6 +29,8 @@
 	<properties>
 		<java.version>17</java.version>
 		<mybatis-spring-boot.version>4.1.0</mybatis-spring-boot.version>
+		<!-- Argon2id 구현체. Spring Boot BOM이 관리하지 않아 버전을 직접 적는다. -->
+		<bouncycastle.version>1.85.2</bouncycastle.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -40,8 +42,18 @@
 			<artifactId>spring-boot-starter-webmvc</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.bouncycastle</groupId>
+			<artifactId>bcprov-jdk18on</artifactId>
+			<version>${bouncycastle.version}</version>
+		</dependency>
+		<!-- 프로젝트 정보 DB = PostgreSQL. Flyway는 이 DB에만 적용한다. -->
+		<dependency>
 			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-database-oracle</artifactId>
+			<artifactId>flyway-database-postgresql</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.mybatis.spring.boot</groupId>
@@ -49,6 +61,12 @@
 			<version>${mybatis-spring-boot.version}</version>
 		</dependency>
 
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<!-- raw_schema / edit_schema(타겟)는 Oracle이라 드라이버는 남겨둔다 -->
 		<dependency>
 			<groupId>com.oracle.database.jdbc</groupId>
 			<artifactId>ojdbc11</artifactId>
@@ -62,6 +80,12 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<!-- 이게 있어야 @WebMvcTest 슬라이스에 실제 시큐리티 필터체인이 적용된다 -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
