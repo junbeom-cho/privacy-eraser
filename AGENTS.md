@@ -6,7 +6,9 @@ PRD와 이 문서가 충돌하면 PRD가 우선이고, 코드 작업 전에 충�
 
 ## 스택
 - Spring Boot **4.1.0**, Java **17**, Maven (wrapper)
-- Flyway (`flyway-database-oracle`), Oracle JDBC `ojdbc11`
+- 프로젝트 정보 DB = **PostgreSQL** (`docker-compose.yaml`), Flyway는 여기에만 적용
+- 타겟(raw/edit) = **Oracle**, 드라이버 `ojdbc11`. 런타임에 접속하므로 DataSource 빈이 아니다
+- Spring Security 7 (Boot 4 라인). 현재 전 경로 `permitAll` — 아래 "시큐리티" 참고
 - MyBatis: `org.mybatis.spring.boot:mybatis-spring-boot-starter:4.1.0` (Boot 4 대응 라인. 3.0.x는 Boot 3용이므로 쓰지 않는다)
 - 프론트엔드: `frontend/` — Vue 3 + TypeScript + vue-router + Vite + `sass-embedded`
 - 설정 파일은 **yaml**(`application.yml`). `.properties`로 되돌리지 않는다.
@@ -16,14 +18,60 @@ PRD와 이 문서가 충돌하면 PRD가 우선이고, 코드 작업 전에 충�
 
 ## 명령어
 ```bash
-./mvnw test              # 테스트 (DB 없이 돈다 — src/test/resources/application.yml 참고)
-./mvnw spring-boot:run   # 백엔드 :8080. PROJECT_DB_URL / PROJECT_DB_USER / PROJECT_DB_PASSWORD 환경변수 필요
+docker compose up -d     # 프로젝트 정보 DB(PostgreSQL) :5432
+./mvnw test              # 테스트. DB 없이 전부 돈다
+./mvnw spring-boot:run   # 백엔드 :8080. 로컬은 환경변수 없이 그냥 뜬다 (.env)
 npm --prefix frontend run dev     # 프론트 개발서버 :5173, /api 는 :8080 으로 프록시
 npm --prefix frontend run build   # src/main/resources/static 으로 빌드 → 백엔드가 그대로 서빙
 ```
+새로 클론했다면 `cp .env.example .env` 먼저. `.env`는 gitignore 대상이고, 운영에서는 파일 없이 환경변수를 쓴다.
+
+- `.env` 한 파일을 **Spring과 docker compose가 같이 읽는다.** Spring 쪽은 `optional:file:.env[.properties]`
+  (`.env`와 `.properties`는 둘 다 `KEY=value`). 값이 한 곳에만 있으니 앱과 컨테이너가 어긋나지 않는다.
+- 그래서 `.env`에는 **`KEY=value`만** 쓴다. YAML 문법을 넣으면 compose가 `.env`를 파싱하다 깨진다.
+- 시크릿이 새로 필요해지면 `.env.example`에 **주석 처리된 예시**를 함께 추가한다. 실제 값은 넣지 않는다.
+- `CREDENTIAL_SECRET`에는 절대 기본값을 주지 않는다 — 안 주면 기동이 막혀야 한다.
+- `application.yml`에는 시크릿을 두지 않으므로 `.example` 사본을 만들지 않는다. 사본은 원본과 어긋난다.
+
+설정 파일을 지우거나 옮긴 뒤에는 `./mvnw clean`을 먼저 한다. `target/classes`에 남은 옛 파일이
+`.yml`을 덮어써서 기동이 깨진다 (`.properties`가 `.yml`보다 우선한다).
+
+## 구조 (DDD)
+기능 단위(`project`, 이후 `keyword`, `masking` …) 아래에 네 계층을 둔다. 의존 방향은 항상 안쪽(domain)으로만.
+
+| 계층 | 담는 것 | 금지 |
+|------|---------|------|
+| `domain` | 엔티티·값객체·불변식, 포트 인터페이스 | Spring/MyBatis/JDBC import 금지 |
+| `application` | 유스케이스 조립, `@Transactional`, Command | SQL·HTTP 관심사 금지 |
+| `infrastructure` | 포트 구현(매퍼·JDBC·암복호화) | 도메인 규칙 판정 금지 |
+| `ui` | 컨트롤러, 요청/응답 DTO, 예외→상태코드 | 비즈니스 로직 금지 |
+
+- 불변식은 도메인 생성자에서 던진다. 서비스·컨트롤러에서 같은 검사를 반복하지 않는다.
+- 저장 시 DTO 변환은 infrastructure에서. 도메인에는 평문 비밀번호가, DB에는 암호문이 들어간다.
+
+## 시큐리티
+[SecurityConfig.java](src/main/java/kr/co/promptech/privacy_protector/config/SecurityConfig.java) — 인증 요구사항이 아직 없어 **전 경로 permitAll, CSRF off**.
+
+- 인증(특히 쿠키/세션 기반)을 도입하는 작업에서는 **CSRF를 반드시 되살리고** `permitAll` 범위를 좁힌다.
+  지금 CSRF를 꺼둔 근거는 "탈 세션이 없다"는 것뿐이고, 세션이 생기는 순간 근거가 사라진다.
+- 기동 로그의 `Using generated security password`는 permitAll이라 쓰이지 않는 기본 사용자다. 인증을 넣으면 사라진다.
+- 사용자 계정 인증을 붙일 때 계정 비밀번호는 **Argon2id로 해싱**한다
+  (`Argon2PasswordEncoder`, BouncyCastle은 이미 의존성에 있다). bcrypt 기본값을 쓰지 않는다.
+- `@WebMvcTest`는 `SecurityConfig`를 자동으로 집어오지 않는다. 컨트롤러 슬라이스 테스트에는
+  `@Import(SecurityConfig.class)`를 붙인다. 빠뜨리면 실제 필터체인이 아닌 기본 설정으로 테스트하게 된다.
+
+## TDD
+기능 코드보다 테스트를 먼저 쓴다. red 확인 → 구현 → green 확인 순서를 지킨다.
+
+- 도메인·애플리케이션 테스트는 순수 JUnit. 목 프레임워크 대신 손으로 만든 Fake를 쓴다.
+- 컨트롤러는 `@WebMvcTest` + `@MockitoBean` + `@Import(SecurityConfig.class)`.
+- 매퍼 XML은 `ProjectMapperSqlTest`처럼 `BoundSql`로 바인딩까지 검증한다. DB 없이 돈다.
+- **모든 테스트는 DB 없이 통과해야 한다.** 실제 DB가 필요해지면 Testcontainers를 도입하고 여기 규칙을 고친다.
+- 테스트 메서드명은 한글로 사실을 서술한다 (`raw와_edit이_같으면_저장하지_않는다`).
 
 ## 코드 규칙
 - base package: `kr.co.promptech.privacy_protector`, 기능 단위로 하위 패키지를 나눈다.
+- 사용자에게 보이는 예외 메시지는 존댓말로 끝맺는다 (`~합니다.`).
 - 새 라이브러리는 기본적으로 추가하지 않는다. 필요하면 이유를 먼저 말하고 승인받는다.
 - 추상화는 구현체가 2개 이상 생길 때 만든다. 인터페이스 1개 + 구현 1개 금지.
 - Flyway는 **프로젝트 정보 DB에만** 적용한다. raw_schema / edit_schema는 Flyway 대상이 아니다.
@@ -56,14 +104,18 @@ npm --prefix frontend run build   # src/main/resources/static 으로 빌드 → 
 
 | # | 이름 | 역할 | 연결 방식 | 권한 |
 |---|------|------|-----------|------|
-| 1 | 프로젝트 정보 DB | 프로젝트·키워드·정책 저장 | `spring.datasource.*` (환경변수) | 읽기/쓰기, Flyway 대상 |
+| 1 | 프로젝트 정보 DB | 프로젝트·키워드·정책 저장 | PostgreSQL, `spring.datasource.*` | 읽기/쓰기, Flyway 대상 |
 | 2 | `raw_schema` | 비식별화 대상 원본 | 프로젝트 레코드에 저장 → 런타임 연결 | **읽기 전용** |
 | 3 | `edit_schema` | 비식별화 결과 이관처 | 프로젝트 레코드에 저장 → 런타임 연결 | 쓰기 |
 
 - `raw_schema`에는 SELECT와 메타데이터 조회만. INSERT/UPDATE/DELETE/DDL 금지.
 - `raw_schema == edit_schema`(같은 접속 + 같은 스키마명)이면 실행을 거부한다. 이 가드가 없으면 원본을 덮어쓴다.
 - 마스킹은 쓰기 직전 한 곳에서만 적용한다. 판정을 거치지 않은 값이 `edit_schema`에 들어가는 경로가 있으면 안 된다.
-- 2·3번 접속 정보는 `application.properties`에 적지 않는다. 프로젝트 레코드에 저장하고 런타임에 DataSource를 만든다.
+- 2·3번 접속 정보는 `application.yml`에 적지 않는다. 프로젝트 레코드에 저장하고 런타임에 연결한다.
+- 저장하는 접속 비밀번호는 `CredentialCipher`로 **암호화**한다(AES-GCM, 키는 Argon2id 파생). 평문 컬럼 금지.
+  **해싱하면 안 된다** — 타겟 Oracle에 이 비밀번호로 실제 접속해야 하므로 복호화가 가능해야 한다.
+- 키 재료는 `CREDENTIAL_SECRET` + `CREDENTIAL_SALT`. 둘 중 하나라도 바뀌면 기존 행을 복호화할 수 없다.
+  값을 교체해야 하면 재암호화 마이그레이션을 먼저 준비한다.
 - 메타데이터 조회는 선택한 스키마/테이블 범위 안에서만. 전체 DB 스캔 금지.
 
 ## 작업 방식
