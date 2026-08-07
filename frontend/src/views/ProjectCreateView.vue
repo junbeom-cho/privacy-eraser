@@ -33,7 +33,7 @@ async function submit() {
     <form @submit.prevent="submit">
       <label class="name">
         프로젝트 이름
-        <input v-model="name" required placeholder="이륜차 공공데이터 개방" />
+        <input v-model="name" required placeholder="예) 고객정보 비식별화" />
       </label>
 
       <DbConnectionFields

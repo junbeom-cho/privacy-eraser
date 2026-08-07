@@ -38,7 +38,7 @@ class ProjectMapperSqlTest {
 	private static Map<String, Object> insertParams() {
 		Map<String, Object> params = new HashMap<>();
 		params.put("id", 1L);
-		params.put("project", Project.create("이륜차 공공데이터",
+		params.put("project", Project.create("고객정보 비식별화",
 				new DbConnection(URL, "raw_user", "raw_pw", "RAW_SCHEMA"),
 				new DbConnection(URL, "edit_user", "edit_pw", "EDIT_SCHEMA")));
 		params.put("rawPassword", "encrypted-raw");

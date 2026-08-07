@@ -13,10 +13,10 @@ class ProjectTest {
 
 	@Test
 	void 프로젝트를_생성한다() {
-		Project project = Project.create("이륜차 공공데이터", RAW, EDIT);
+		Project project = Project.create("고객정보 비식별화", RAW, EDIT);
 
 		assertThat(project.id()).isNull();
-		assertThat(project.name()).isEqualTo("이륜차 공공데이터");
+		assertThat(project.name()).isEqualTo("고객정보 비식별화");
 		assertThat(project.rawConnection()).isEqualTo(RAW);
 		assertThat(project.editConnection()).isEqualTo(EDIT);
 	}

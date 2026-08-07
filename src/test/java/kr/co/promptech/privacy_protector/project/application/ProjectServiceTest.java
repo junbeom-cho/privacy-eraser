@@ -33,11 +33,11 @@ class ProjectServiceTest {
 
 	@Test
 	void 프로젝트를_저장하고_id를_돌려준다() {
-		Long id = service.create(new CreateProjectCommand("이륜차 공공데이터", RAW, EDIT));
+		Long id = service.create(new CreateProjectCommand("고객정보 비식별화", RAW, EDIT));
 
 		assertThat(id).isEqualTo(1L);
 		assertThat(repository.saved).hasSize(1);
-		assertThat(repository.saved.get(0).name()).isEqualTo("이륜차 공공데이터");
+		assertThat(repository.saved.get(0).name()).isEqualTo("고객정보 비식별화");
 	}
 
 	@Test

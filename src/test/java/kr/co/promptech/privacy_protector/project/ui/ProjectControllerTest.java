@@ -27,7 +27,7 @@ class ProjectControllerTest {
 
 	private static final String CREATE_BODY = """
 			{
-			  "name": "이륜차 공공데이터",
+			  "name": "고객정보 비식별화",
 			  "rawConnection":  {"url":"jdbc:oracle:thin:@localhost:1521/XE","username":"app","password":"pw","schema":"RAW_SCHEMA"},
 			  "editConnection": {"url":"jdbc:oracle:thin:@localhost:1521/XE","username":"app","password":"pw","schema":"EDIT_SCHEMA"}
 			}
