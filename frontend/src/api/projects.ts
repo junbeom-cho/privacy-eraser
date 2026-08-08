@@ -87,3 +87,22 @@ export function updateProject(
 export function deleteProject(id: number) {
   return request<void>('DELETE', `/api/projects/${id}`)
 }
+
+export interface ColumnView {
+  name: string
+  type: string
+  nullable: boolean
+  /** 컬럼명을 `_` 로 나눈 토큰. 키워드는 이것과 대조합니다. */
+  tokens: string[]
+}
+
+export interface TableView {
+  name: string
+  columnCount: number
+  columns: ColumnView[]
+}
+
+/** 원본 스키마를 매번 실제 DB에서 읽습니다. 저장하지 않습니다. */
+export function listTables(projectId: number) {
+  return request<TableView[]>('GET', `/api/projects/${projectId}/tables`)
+}

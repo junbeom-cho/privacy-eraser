@@ -19,6 +19,11 @@ const router = createRouter({
       name: 'project-edit',
       component: () => import('@/views/ProjectEditView.vue'),
     },
+    {
+      path: '/projects/:id/schema',
+      name: 'project-schema',
+      component: () => import('@/views/ProjectSchemaView.vue'),
+    },
   ],
 })
 
