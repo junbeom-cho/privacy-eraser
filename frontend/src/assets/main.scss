@@ -41,14 +41,33 @@ input {
   font: inherit;
 }
 
-button {
+a {
+  color: var(--accent);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// a 태그에도 .button 을 주면 같은 모양이 되도록 함께 선언합니다.
+button,
+.button {
+  display: inline-block;
   padding: 0.45rem 1rem;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--bg);
   color: inherit;
   font: inherit;
+  line-height: 1.2;
+  text-decoration: none;
   cursor: pointer;
+
+  &:hover {
+    border-color: var(--accent);
+    text-decoration: none;
+  }
 
   &:disabled {
     opacity: 0.6;
@@ -59,5 +78,9 @@ button {
     border-color: var(--accent);
     background: var(--accent);
     color: #fff;
+  }
+
+  &.danger {
+    color: var(--danger);
   }
 }

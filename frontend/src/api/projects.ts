@@ -5,6 +5,20 @@ export interface DbConnectionInput {
   schema: string
 }
 
+/** 응답에는 비밀번호가 없습니다. 서버가 절대 내려주지 않습니다. */
+export interface ConnectionView {
+  url: string
+  username: string
+  schema: string
+}
+
+export interface ProjectView {
+  id: number
+  name: string
+  rawConnection: ConnectionView
+  editConnection: ConnectionView | null
+}
+
 export interface ConnectionTestResult {
   success: boolean
   message: string
@@ -23,12 +37,19 @@ export function emptyConnection(): DbConnectionInput {
   }
 }
 
-async function post<T>(path: string, body: unknown): Promise<T> {
+/** 조회 결과를 편집용으로 바꿉니다. 비밀번호는 받지 못하므로 빈 칸으로 둡니다. */
+export function toInput(connection: ConnectionView | null): DbConnectionInput {
+  if (!connection) return emptyConnection()
+  return { url: connection.url, username: connection.username, password: '', schema: connection.schema }
+}
+
+async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const response = await fetch(path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    method,
+    headers: body === undefined ? {} : { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
   })
+  if (response.status === 204) return undefined as T
   const payload = await response.json().catch(() => null)
   if (!response.ok) {
     throw new Error(payload?.message ?? '요청에 실패했습니다.')
@@ -37,12 +58,32 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 }
 
 export function testConnection(connection: DbConnectionInput) {
-  return post<ConnectionTestResult>('/api/projects/connection-test', connection)
+  return request<ConnectionTestResult>('POST', '/api/projects/connection-test', connection)
 }
 
-/**
- * 이관 대상(edit_schema)은 여기서 받지 않습니다. 비식별화를 실행할 때 정합니다.
- */
+export function listProjects() {
+  return request<ProjectView[]>('GET', '/api/projects')
+}
+
+export function getProject(id: number) {
+  return request<ProjectView>('GET', `/api/projects/${id}`)
+}
+
+/** 이관 대상(edit)은 생성 시점에 받지 않습니다. 비식별화를 실행할 때 정합니다. */
 export function createProject(name: string, rawConnection: DbConnectionInput) {
-  return post<{ id: number }>('/api/projects', { name, rawConnection })
+  return request<{ id: number }>('POST', '/api/projects', { name, rawConnection })
+}
+
+/** 비밀번호를 비워 보내면 서버가 기존 값을 유지합니다. */
+export function updateProject(
+  id: number,
+  name: string,
+  rawConnection: DbConnectionInput,
+  editConnection: DbConnectionInput | null,
+) {
+  return request<void>('PUT', `/api/projects/${id}`, { name, rawConnection, editConnection })
+}
+
+export function deleteProject(id: number) {
+  return request<void>('DELETE', `/api/projects/${id}`)
 }
