@@ -52,7 +52,7 @@ npm --prefix frontend run build   # src/main/resources/static 으로 빌드 → 
 - 저장 시 DTO 변환은 infrastructure에서 합니다. 도메인에는 평문 비밀번호가, DB에는 암호문이 들어갑니다.
 
 ## 시큐리티
-[SecurityConfig.java](src/main/java/kr/co/promptech/privacy_protector/config/SecurityConfig.java) — 인증 요구사항이 아직 없어 **전 경로 permitAll, CSRF off** 상태입니다.
+[SecurityConfig.java](src/main/java/kr/co/promptech/privacy_eraser/config/SecurityConfig.java) — 인증 요구사항이 아직 없어 **전 경로 permitAll, CSRF off** 상태입니다.
 
 - 인증(특히 쿠키/세션 기반)을 도입하는 작업에서는 **CSRF를 반드시 되살리고** `permitAll` 범위를 좁힙니다.
   지금 CSRF를 꺼둔 근거는 "탈 세션이 없다"는 것뿐이고, 세션이 생기는 순간 그 근거가 사라집니다.
@@ -72,7 +72,7 @@ npm --prefix frontend run build   # src/main/resources/static 으로 빌드 → 
 - 테스트 메서드명은 한글로 사실을 서술합니다 (`raw와_edit이_같으면_저장하지_않는다`).
 
 ## 코드 규칙
-- base package는 `kr.co.promptech.privacy_protector`이고, 기능 단위로 하위 패키지를 나눕니다.
+- base package는 `kr.co.promptech.privacy_eraser`이고, 기능 단위로 하위 패키지를 나눕니다.
 - 사용자에게 보이는 예외 메시지는 존댓말로 끝맺습니다 (`~합니다.`).
 - 새 라이브러리는 기본적으로 추가하지 않습니다. 필요하면 이유를 먼저 말하고 승인받습니다.
 - 추상화는 구현체가 2개 이상 생길 때 만듭니다. 인터페이스 1개 + 구현 1개는 금지입니다.

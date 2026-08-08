@@ -1,4 +1,4 @@
-# Privacy Protector
+# Privacy Eraser
 
 DB의 개인정보 컬럼을 GUI로 비식별화(마스킹)하는 도구입니다.
 

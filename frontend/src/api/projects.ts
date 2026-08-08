@@ -10,8 +10,17 @@ export interface ConnectionTestResult {
   message: string
 }
 
+/**
+ * URL 은 비워두지 않고 형식이 보이는 값을 채워둡니다. 각자 환경에 맞게 고쳐 쓰는 편이
+ * 빈 칸에 placeholder 만 보이는 것보다 빠릅니다.
+ */
 export function emptyConnection(): DbConnectionInput {
-  return { url: '', username: '', password: '', schema: '' }
+  return {
+    url: 'jdbc:oracle:thin:@//localhost:1521/FREEPDB1',
+    username: '',
+    password: '',
+    schema: '',
+  }
 }
 
 async function post<T>(path: string, body: unknown): Promise<T> {

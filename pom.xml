@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>kr.co.promptech</groupId>
-	<artifactId>privacy-protector</artifactId>
+	<artifactId>privacy-eraser</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>privacy-protector</name>
+	<name>privacy-eraser</name>
 	<description>DB 컬럼 비식별화(마스킹) 도구</description>
 	<properties>
 		<java.version>17</java.version>

@@ -1,4 +1,4 @@
-# Privacy Protector
+# Privacy Eraser
 
 ---
 ## 개발 목적
