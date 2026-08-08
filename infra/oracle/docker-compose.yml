@@ -11,11 +11,6 @@ services:
     shm_size: "2gb"
     volumes:
       - oracle-data:/opt/oracle/oradata
-      # HR 샘플 스키마(raw_schema 역할). setup/ 은 DB 를 처음 만들 때 한 번 실행됩니다.
-      # 이미 만들어진 DB 에 넣으려면:
-      #   docker exec oracle23ai /opt/oracle/scripts/setup/install-hr.sh
-      - ./init:/opt/oracle/scripts/setup:ro
-      - ./human_resources:/opt/oracle/sample/human_resources:ro
     healthcheck:
       test: ["CMD-SHELL", "printf 'WHENEVER SQLERROR EXIT 1;\\nselect 1 from dual;\\n' | sqlplus -s -L system/${ORACLE_PWD:-ptech6441}@//localhost:1521/FREEPDB1 > /dev/null"]
       interval: 30s
