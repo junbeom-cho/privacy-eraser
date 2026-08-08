@@ -121,9 +121,9 @@ public class ProjectController {
 			ConnectionResponse rawConnection, ConnectionResponse editConnection) {
 
 		static ProjectResponse from(Project project) {
-			return new ProjectResponse(project.id(), project.name(),
-					ConnectionResponse.from(project.rawConnection()),
-					ConnectionResponse.from(project.editConnection()));
+			return new ProjectResponse(project.getId(), project.getName(),
+					ConnectionResponse.from(project.getRawConnection()),
+					ConnectionResponse.from(project.getEditConnection()));
 		}
 	}
 

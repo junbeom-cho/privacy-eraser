@@ -16,10 +16,10 @@ class ProjectTest {
 	void 원본_접속정보만으로_생성한다() {
 		Project project = Project.create("고객정보 비식별화", RAW);
 
-		assertThat(project.id()).isNull();
-		assertThat(project.name()).isEqualTo("고객정보 비식별화");
-		assertThat(project.rawConnection()).isEqualTo(RAW);
-		assertThat(project.editConnection()).isNull();
+		assertThat(project.getId()).isNull();
+		assertThat(project.getName()).isEqualTo("고객정보 비식별화");
+		assertThat(project.getRawConnection()).isEqualTo(RAW);
+		assertThat(project.getEditConnection()).isNull();
 	}
 
 	@Test
@@ -32,7 +32,7 @@ class ProjectTest {
 		Project project = new Project(null, "이름", RAW, EDIT);
 
 		assertThat(project.hasEditConnection()).isTrue();
-		assertThat(project.editConnection()).isEqualTo(EDIT);
+		assertThat(project.getEditConnection()).isEqualTo(EDIT);
 	}
 
 	@Test
@@ -61,6 +61,6 @@ class ProjectTest {
 
 	@Test
 	void 이름_앞뒤_공백은_제거한다() {
-		assertThat(Project.create("  프로젝트  ", RAW).name()).isEqualTo("프로젝트");
+		assertThat(Project.create("  프로젝트  ", RAW).getName()).isEqualTo("프로젝트");
 	}
 }

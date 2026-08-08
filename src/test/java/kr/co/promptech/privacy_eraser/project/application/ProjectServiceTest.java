@@ -66,14 +66,14 @@ class ProjectServiceTest {
 		given원본만_가진_프로젝트("첫번째");
 		given원본만_가진_프로젝트("두번째");
 
-		assertThat(service.findAll()).extracting(Project::name).containsExactly("첫번째", "두번째");
+		assertThat(service.findAll()).extracting(Project::getName).containsExactly("첫번째", "두번째");
 	}
 
 	@Test
 	void 단건을_돌려준다() {
 		Long id = given원본만_가진_프로젝트("고객정보 비식별화");
 
-		assertThat(service.findById(id).name()).isEqualTo("고객정보 비식별화");
+		assertThat(service.findById(id).getName()).isEqualTo("고객정보 비식별화");
 	}
 
 	@Test
@@ -109,9 +109,9 @@ class ProjectServiceTest {
 		service.update(new UpdateProjectCommand(id, "새이름", 새원본, null));
 
 		Project updated = service.findById(id);
-		assertThat(updated.name()).isEqualTo("새이름");
-		assertThat(updated.rawConnection().username()).isEqualTo("newuser");
-		assertThat(updated.rawConnection().password()).isEqualTo("newpw");
+		assertThat(updated.getName()).isEqualTo("새이름");
+		assertThat(updated.getRawConnection().username()).isEqualTo("newuser");
+		assertThat(updated.getRawConnection().password()).isEqualTo("newpw");
 	}
 
 	@Test
@@ -121,7 +121,7 @@ class ProjectServiceTest {
 
 		service.update(new UpdateProjectCommand(id, "이름", 비밀번호_없이, null));
 
-		assertThat(service.findById(id).rawConnection().password()).isEqualTo("pw");
+		assertThat(service.findById(id).getRawConnection().password()).isEqualTo("pw");
 	}
 
 	@Test
@@ -132,7 +132,7 @@ class ProjectServiceTest {
 
 		Project updated = service.findById(id);
 		assertThat(updated.hasEditConnection()).isTrue();
-		assertThat(updated.editConnection().schema()).isEqualTo("EDIT_SCHEMA");
+		assertThat(updated.getEditConnection().schema()).isEqualTo("EDIT_SCHEMA");
 	}
 
 	@Test
@@ -160,7 +160,7 @@ class ProjectServiceTest {
 
 		service.update(new UpdateProjectCommand(id, "그대로", RAW, null));
 
-		assertThat(service.findById(id).name()).isEqualTo("그대로");
+		assertThat(service.findById(id).getName()).isEqualTo("그대로");
 	}
 
 	@Test
@@ -196,19 +196,19 @@ class ProjectServiceTest {
 		@Override
 		public Long save(Project project) {
 			Long id = sequence.incrementAndGet();
-			saved.add(new Project(id, project.name(), project.rawConnection(), project.editConnection()));
+			saved.add(new Project(id, project.getName(), project.getRawConnection(), project.getEditConnection()));
 			return id;
 		}
 
 		@Override
 		public void update(Project project) {
-			deleteById(project.id());
+			deleteById(project.getId());
 			saved.add(project);
 		}
 
 		@Override
 		public void deleteById(Long id) {
-			saved.removeIf(p -> p.id().equals(id));
+			saved.removeIf(p -> p.getId().equals(id));
 		}
 
 		@Override
@@ -218,12 +218,12 @@ class ProjectServiceTest {
 
 		@Override
 		public Optional<Project> findById(Long id) {
-			return saved.stream().filter(p -> p.id().equals(id)).findFirst();
+			return saved.stream().filter(p -> p.getId().equals(id)).findFirst();
 		}
 
 		@Override
 		public boolean existsByName(String name) {
-			return saved.stream().anyMatch(p -> p.name().equals(name));
+			return saved.stream().anyMatch(p -> p.getName().equals(name));
 		}
 	}
 

@@ -39,7 +39,7 @@ public class ProjectService {
 	@Transactional
 	public Long create(CreateProjectCommand command) {
 		Project project = Project.create(command.name(), command.rawConnection());
-		if (projectRepository.existsByName(project.name())) {
+		if (projectRepository.existsByName(project.getName())) {
 			throw new IllegalArgumentException("이미 존재하는 프로젝트명입니다.");
 		}
 		return projectRepository.save(project);
@@ -47,16 +47,18 @@ public class ProjectService {
 
 	@Transactional
 	public void update(UpdateProjectCommand command) {
-		Project existing = findById(command.id());
+		Project project = findById(command.id());
 
-		Project updated = new Project(existing.id(), command.name(),
-				keepPasswordIfBlank(command.rawConnection(), existing.rawConnection()),
-				keepPasswordIfBlank(command.editConnection(), existing.editConnection()));
-
-		if (!existing.name().equals(updated.name()) && projectRepository.existsByName(updated.name())) {
+		if (!project.getName().equals(command.name().strip())
+				&& projectRepository.existsByName(command.name().strip())) {
 			throw new IllegalArgumentException("이미 존재하는 프로젝트명입니다.");
 		}
-		projectRepository.update(updated);
+
+		project.update(command.name(),
+				keepPasswordIfBlank(command.rawConnection(), project.getRawConnection()),
+				keepPasswordIfBlank(command.editConnection(), project.getEditConnection()));
+
+		projectRepository.update(project);
 	}
 
 	@Transactional
