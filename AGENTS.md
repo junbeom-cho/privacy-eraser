@@ -51,7 +51,20 @@ npm --prefix frontend run build   # src/main/resources/static 으로 빌드 → 
 | `infrastructure` | 포트 구현(매퍼·JDBC·암복호화) | 도메인 규칙 판정 금지 |
 | `ui` | 컨트롤러, 요청/응답 DTO, 예외→상태코드 | 비즈니스 로직 금지 |
 
-- 불변식은 도메인 생성자에서 던집니다. 서비스·컨트롤러에서 같은 검사를 반복하지 않습니다.
+- **엔티티는 클래스, 값 객체는 record 입니다.**
+
+  | | 예 | 이유 |
+  |---|---|---|
+  | 엔티티 = 클래스 | `Project` | id 로 식별되고 상태가 바뀝니다. `equals` 도 id 로만 비교합니다 |
+  | 값 객체 = record | `DbConnection`, `ColumnMetadata`, `TableMetadata` | 불변이고 값으로 동등성을 판단합니다 |
+  | DTO = record | Command, Request, Response, `ProjectRow` | 값 전달만 합니다 |
+
+  엔티티를 record 로 만들면 `equals` 가 모든 필드를 비교하고, 상태 변경 메서드를 둘 수 없어
+  서비스가 `new Project(...)` 로 조립하는 빈혈 모델이 됩니다.
+- 엔티티 접근자는 **JavaBean 게터**(`getName()`)로 씁니다. MyBatis 가 `#{project.rawConnection.url}` 을
+  해석할 때 게터를 찾습니다. `name()` 스타일로 두면 record 가 아닌 클래스에서는 바인딩이 깨집니다.
+- 불변식은 도메인에서 던집니다. 상태를 바꾸는 메서드도 같은 검사를 거치게 해서, 생성 이후에도
+  규칙이 유지되게 합니다. 서비스·컨트롤러에서 같은 검사를 반복하지 않습니다.
 - 저장 시 DTO 변환은 infrastructure에서 합니다. 도메인에는 평문 비밀번호가, DB에는 암호문이 들어갑니다.
 
 ## 시큐리티
