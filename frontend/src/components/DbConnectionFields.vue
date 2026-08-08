@@ -36,7 +36,7 @@ async function runTest() {
 
     <label>
       JDBC URL
-      <input v-model="connection.url" placeholder="jdbc:oracle:thin:@localhost:1521/XE" />
+      <input v-model="connection.url" spellcheck="false" />
     </label>
     <label>
       사용자명

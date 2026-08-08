@@ -1,4 +1,4 @@
-package kr.co.promptech.privacy_protector.project.domain;
+package kr.co.promptech.privacy_eraser.project.domain;
 
 import org.junit.jupiter.api.Test;
 
