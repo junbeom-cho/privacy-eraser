@@ -2,8 +2,38 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="kr.co.promptech.privacy_eraser.project.infrastructure.ProjectMapper">
 
+	<!-- ProjectRow 는 record 라 세터가 없습니다. 생성자 인자 순서대로 매핑합니다. -->
+	<resultMap id="projectRow" type="kr.co.promptech.privacy_eraser.project.infrastructure.ProjectRow">
+		<constructor>
+			<idArg column="project_id" javaType="java.lang.Long"/>
+			<arg column="name" javaType="java.lang.String"/>
+			<arg column="raw_url" javaType="java.lang.String"/>
+			<arg column="raw_username" javaType="java.lang.String"/>
+			<arg column="raw_password" javaType="java.lang.String"/>
+			<arg column="raw_schema" javaType="java.lang.String"/>
+			<arg column="edit_url" javaType="java.lang.String"/>
+			<arg column="edit_username" javaType="java.lang.String"/>
+			<arg column="edit_password" javaType="java.lang.String"/>
+			<arg column="edit_schema" javaType="java.lang.String"/>
+		</constructor>
+	</resultMap>
+
+	<sql id="columns">
+		project_id, name,
+		raw_url, raw_username, raw_password, raw_schema,
+		edit_url, edit_username, edit_password, edit_schema
+	</sql>
+
 	<select id="nextProjectId" resultType="long">
 		SELECT nextval('project_seq')
+	</select>
+
+	<select id="findAll" resultMap="projectRow">
+		SELECT <include refid="columns"/> FROM project ORDER BY project_id
+	</select>
+
+	<select id="findById" resultMap="projectRow">
+		SELECT <include refid="columns"/> FROM project WHERE project_id = #{id}
 	</select>
 
 	<insert id="insert">
@@ -19,6 +49,24 @@
 			#{editPassword,jdbcType=VARCHAR}, #{project.editConnection.schema,jdbcType=VARCHAR}
 		)
 	</insert>
+
+	<update id="update">
+		UPDATE project SET
+			name          = #{project.name},
+			raw_url       = #{project.rawConnection.url},
+			raw_username  = #{project.rawConnection.username},
+			raw_password  = #{rawPassword},
+			raw_schema    = #{project.rawConnection.schema},
+			edit_url      = #{project.editConnection.url,jdbcType=VARCHAR},
+			edit_username = #{project.editConnection.username,jdbcType=VARCHAR},
+			edit_password = #{editPassword,jdbcType=VARCHAR},
+			edit_schema   = #{project.editConnection.schema,jdbcType=VARCHAR}
+		WHERE project_id = #{project.id}
+	</update>
+
+	<delete id="deleteById">
+		DELETE FROM project WHERE project_id = #{id}
+	</delete>
 
 	<select id="existsByName" resultType="boolean">
 		SELECT EXISTS (SELECT 1 FROM project WHERE name = #{name})

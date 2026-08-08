@@ -29,7 +29,8 @@ class SecurityConfigTest {
 
 	@Test
 	void 인증_없이_접근해도_401_403이_아니다() throws Exception {
-		mockMvc.perform(get("/api/projects/존재하지-않는-경로"))
+		// 매핑이 아예 없는 경로여야 합니다. /api/projects/{id} 는 매핑이 있어 400(타입 불일치)이 납니다.
+		mockMvc.perform(get("/api/매핑없는경로"))
 				.andExpect(status().isNotFound());
 	}
 
