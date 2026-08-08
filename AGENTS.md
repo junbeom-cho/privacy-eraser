@@ -24,6 +24,9 @@ docker compose -f infra/postgres/docker-compose.yaml --env-file .env up -d   # �
 npm --prefix frontend run dev     # 프론트 개발서버 :5173, /api 는 :8080 으로 프록시
 npm --prefix frontend run build   # src/main/resources/static 으로 빌드 → 백엔드가 그대로 서빙
 ```
+프론트를 빌드한 뒤 :8080 에 반영하려면 **백엔드를 재시작해야 합니다.** 실행 중인 앱은 `target/classes` 의
+사본을 들고 있어서, `src/main/resources/static` 만 바뀌면 옛 화면이 계속 나옵니다.
+프론트 작업 중에는 :8080 을 새로고침하지 말고 :5173 을 쓰세요.
 새로 클론했다면 `cp .env.example .env`를 먼저 실행합니다. `.env`는 gitignore 대상이고, 운영에서는 파일 없이 환경변수를 씁니다.
 
 - `.env` 한 파일을 **Spring과 docker compose가 같이 읽습니다.** Spring 쪽은 `optional:file:.env[.properties]`
@@ -98,6 +101,10 @@ npm --prefix frontend run build   # src/main/resources/static 으로 빌드 → 
 - `src/main/resources/static/`은 빌드 산출물이라 gitignore 대상입니다. 여기에 직접 파일을 만들지 않습니다.
 - 상태관리 라이브러리(Pinia 등)는 아직 없습니다. props/emit으로 안 되는 상황이 실제로 생기면 그때 넣습니다.
 - API 응답의 컬럼 값은 이미 마스킹된 값입니다. 프론트에서 원본 값을 요청하거나 캐시하지 않습니다.
+- **접속 비밀번호는 조회 응답에 절대 넣지 않습니다.** 수정 화면은 비밀번호 칸을 빈 채로 두고,
+  비워서 보내면 서버가 기존 값을 유지합니다 (`ProjectService.keepPasswordIfBlank`).
+- vue-router 는 history 모드입니다. 새 라우트를 추가해도 `SpaForwardConfig` 가 index.html 로
+  돌려보내므로 새로고침이 깨지지 않습니다. `/api` 와 확장자 있는 경로는 폴백하지 않고 404 입니다.
 
 ## 도메인 규칙 (깨지면 안 되는 것)
 - 컬럼명은 `_` 기준으로 토큰을 분리한 뒤 키워드와 매칭합니다 (`T_usr_mstr` → `t`,`usr`,`mstr`).
