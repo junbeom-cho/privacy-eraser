@@ -25,7 +25,7 @@ public class ProjectService {
 
 	@Transactional
 	public Long create(CreateProjectCommand command) {
-		Project project = Project.create(command.name(), command.rawConnection(), command.editConnection());
+		Project project = Project.create(command.name(), command.rawConnection());
 		if (projectRepository.existsByName(project.name())) {
 			throw new IllegalArgumentException("이미 존재하는 프로젝트명입니다.");
 		}

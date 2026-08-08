@@ -31,10 +31,9 @@ export function testConnection(connection: DbConnectionInput) {
   return post<ConnectionTestResult>('/api/projects/connection-test', connection)
 }
 
-export function createProject(
-  name: string,
-  rawConnection: DbConnectionInput,
-  editConnection: DbConnectionInput,
-) {
-  return post<{ id: number }>('/api/projects', { name, rawConnection, editConnection })
+/**
+ * 이관 대상(edit_schema)은 여기서 받지 않습니다. 비식별화를 실행할 때 정합니다.
+ */
+export function createProject(name: string, rawConnection: DbConnectionInput) {
+  return post<{ id: number }>('/api/projects', { name, rawConnection })
 }

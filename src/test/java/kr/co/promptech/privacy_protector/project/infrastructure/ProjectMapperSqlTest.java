@@ -18,12 +18,14 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * DB 없이 매퍼 XML을 검증한다. XML 파싱과 #{} 바인딩이 도메인 객체 구조와 맞는지까지 확인한다.
+ * DB 없이 매퍼 XML을 검증합니다. XML 파싱과 #{} 바인딩이 도메인 객체 구조와 맞는지까지 확인합니다.
  */
 class ProjectMapperSqlTest {
 
 	private static final String NAMESPACE = ProjectMapper.class.getName();
 	private static final String URL = "jdbc:oracle:thin:@localhost:1521/XE";
+	private static final DbConnection RAW = new DbConnection(URL, "raw_user", "raw_pw", "RAW_SCHEMA");
+	private static final DbConnection EDIT = new DbConnection(URL, "edit_user", "edit_pw", "EDIT_SCHEMA");
 
 	private static Configuration configuration;
 
@@ -35,15 +37,21 @@ class ProjectMapperSqlTest {
 		}
 	}
 
-	private static Map<String, Object> insertParams() {
+	private static Map<String, Object> insertParams(Project project, String editPassword) {
 		Map<String, Object> params = new HashMap<>();
 		params.put("id", 1L);
-		params.put("project", Project.create("고객정보 비식별화",
-				new DbConnection(URL, "raw_user", "raw_pw", "RAW_SCHEMA"),
-				new DbConnection(URL, "edit_user", "edit_pw", "EDIT_SCHEMA")));
+		params.put("project", project);
 		params.put("rawPassword", "encrypted-raw");
-		params.put("editPassword", "encrypted-edit");
+		params.put("editPassword", editPassword);
 		return params;
+	}
+
+	private static List<Object> boundValues(Map<String, Object> params) {
+		BoundSql boundSql = configuration.getMappedStatement(NAMESPACE + ".insert").getBoundSql(params);
+		MetaObject metaObject = configuration.newMetaObject(params);
+		return boundSql.getParameterMappings().stream()
+				.map(mapping -> metaObject.getValue(mapping.getProperty()))
+				.toList();
 	}
 
 	@Test
@@ -54,14 +62,14 @@ class ProjectMapperSqlTest {
 	}
 
 	@Test
-	void insert의_모든_바인딩이_도메인_객체에서_해석된다() {
-		Map<String, Object> params = insertParams();
+	void 이관_대상이_있으면_모든_바인딩이_해석된다() {
+		Map<String, Object> params = insertParams(new Project(null, "고객정보 비식별화", RAW, EDIT), "encrypted-edit");
+
 		BoundSql boundSql = configuration.getMappedStatement(NAMESPACE + ".insert").getBoundSql(params);
 		MetaObject metaObject = configuration.newMetaObject(params);
 
-		List<ParameterMapping> mappings = boundSql.getParameterMappings();
-		assertThat(mappings).hasSize(10);
-		for (ParameterMapping mapping : mappings) {
+		assertThat(boundSql.getParameterMappings()).hasSize(10);
+		for (ParameterMapping mapping : boundSql.getParameterMappings()) {
 			assertThat(metaObject.getValue(mapping.getProperty()))
 					.as("바인딩 %s", mapping.getProperty())
 					.isNotNull();
@@ -69,16 +77,24 @@ class ProjectMapperSqlTest {
 	}
 
 	@Test
+	void 이관_대상이_없으면_edit_바인딩은_null로_해석된다() {
+		Map<String, Object> params = insertParams(Project.create("원본만", RAW), null);
+
+		List<Object> values = boundValues(params);
+
+		assertThat(values).hasSize(10);
+		assertThat(values).contains(1L, "원본만", RAW.url(), "encrypted-raw");
+		// edit 관련 4개는 전부 null 이어야 합니다. (id, name, raw 4개, edit 4개 = 10)
+		assertThat(values.stream().filter(java.util.Objects::isNull)).hasSize(4);
+	}
+
+	@Test
 	void insert에는_평문이_아니라_암호화된_비밀번호가_바인딩된다() {
-		Map<String, Object> params = insertParams();
-		BoundSql boundSql = configuration.getMappedStatement(NAMESPACE + ".insert").getBoundSql(params);
-		MetaObject metaObject = configuration.newMetaObject(params);
+		Map<String, Object> params = insertParams(new Project(null, "고객정보 비식별화", RAW, EDIT), "encrypted-edit");
 
-		List<Object> boundValues = boundSql.getParameterMappings().stream()
-				.map(mapping -> metaObject.getValue(mapping.getProperty()))
-				.toList();
+		List<Object> values = boundValues(params);
 
-		assertThat(boundValues).contains("encrypted-raw", "encrypted-edit");
-		assertThat(boundValues).doesNotContain("raw_pw", "edit_pw");
+		assertThat(values).contains("encrypted-raw", "encrypted-edit");
+		assertThat(values).doesNotContain("raw_pw", "edit_pw");
 	}
 }

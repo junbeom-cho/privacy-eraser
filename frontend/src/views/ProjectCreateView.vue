@@ -5,7 +5,6 @@ import { createProject, emptyConnection } from '@/api/projects'
 
 const name = ref('')
 const rawConnection = reactive(emptyConnection())
-const editConnection = reactive(emptyConnection())
 
 const saving = ref(false)
 const createdId = ref<number | null>(null)
@@ -16,7 +15,7 @@ async function submit() {
   createdId.value = null
   error.value = ''
   try {
-    const created = await createProject(name.value, rawConnection, editConnection)
+    const created = await createProject(name.value, rawConnection)
     createdId.value = created.id
   } catch (e) {
     error.value = e instanceof Error ? e.message : '프로젝트 생성에 실패했습니다.'
@@ -29,6 +28,9 @@ async function submit() {
 <template>
   <main class="project-create">
     <h1>프로젝트 생성</h1>
+    <p class="lead">
+      비식별화할 원본 DB를 등록합니다. 이관 대상은 원본을 살펴본 뒤 비식별화를 실행할 때 정합니다.
+    </p>
 
     <form @submit.prevent="submit">
       <label class="name">
@@ -41,12 +43,6 @@ async function submit() {
         title="원본 (raw_schema)"
         hint="비식별화 대상 원본입니다. 읽기만 합니다."
         schema-placeholder="RAW_SCHEMA"
-      />
-      <DbConnectionFields
-        v-model="editConnection"
-        title="이관 대상 (edit_schema)"
-        hint="비식별화 결과가 저장됩니다. 원본과 같은 스키마는 사용할 수 없습니다."
-        schema-placeholder="EDIT_SCHEMA"
       />
 
       <button type="submit" class="primary" :disabled="saving">
@@ -66,8 +62,14 @@ async function submit() {
   padding: 2rem 1rem 4rem;
 
   h1 {
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.5rem;
     font-size: 1.5rem;
+  }
+
+  .lead {
+    margin: 0 0 1.5rem;
+    color: var(--muted);
+    font-size: 0.9rem;
   }
 
   form {

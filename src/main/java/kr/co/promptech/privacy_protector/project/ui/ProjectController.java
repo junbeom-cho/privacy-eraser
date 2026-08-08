@@ -42,14 +42,13 @@ public class ProjectController {
 		return new ErrorResponse(e.getMessage());
 	}
 
-	public record CreateProjectRequest(String name, DbConnectionRequest rawConnection,
-			DbConnectionRequest editConnection) {
+	public record CreateProjectRequest(String name, DbConnectionRequest rawConnection) {
 
 		CreateProjectCommand toCommand() {
-			if (rawConnection == null || editConnection == null) {
-				throw new IllegalArgumentException("raw/edit 접속 정보가 모두 필요합니다.");
+			if (rawConnection == null) {
+				throw new IllegalArgumentException("원본(raw) 접속 정보가 필요합니다.");
 			}
-			return new CreateProjectCommand(name, rawConnection.toDomain(), editConnection.toDomain());
+			return new CreateProjectCommand(name, rawConnection.toDomain());
 		}
 	}
 

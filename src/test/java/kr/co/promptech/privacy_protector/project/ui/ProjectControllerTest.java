@@ -28,8 +28,7 @@ class ProjectControllerTest {
 	private static final String CREATE_BODY = """
 			{
 			  "name": "고객정보 비식별화",
-			  "rawConnection":  {"url":"jdbc:oracle:thin:@localhost:1521/XE","username":"app","password":"pw","schema":"RAW_SCHEMA"},
-			  "editConnection": {"url":"jdbc:oracle:thin:@localhost:1521/XE","username":"app","password":"pw","schema":"EDIT_SCHEMA"}
+			  "rawConnection": {"url":"jdbc:oracle:thin:@localhost:1521/XE","username":"app","password":"pw","schema":"RAW_SCHEMA"}
 			}
 			""";
 
@@ -40,7 +39,7 @@ class ProjectControllerTest {
 	private ProjectService projectService;
 
 	@Test
-	void 프로젝트를_생성하면_201과_id를_돌려준다() throws Exception {
+	void 원본_접속정보만으로_생성하면_201과_id를_돌려준다() throws Exception {
 		given(projectService.create(any(CreateProjectCommand.class))).willReturn(7L);
 
 		mockMvc.perform(post("/api/projects").contentType(MediaType.APPLICATION_JSON).content(CREATE_BODY))
@@ -51,24 +50,30 @@ class ProjectControllerTest {
 	@Test
 	void 도메인_규칙을_어기면_400과_사유를_돌려준다() throws Exception {
 		given(projectService.create(any(CreateProjectCommand.class)))
-				.willThrow(new IllegalArgumentException("원본과 이관 대상이 같다"));
+				.willThrow(new IllegalArgumentException("이미 존재하는 프로젝트명입니다."));
 
 		mockMvc.perform(post("/api/projects").contentType(MediaType.APPLICATION_JSON).content(CREATE_BODY))
 				.andExpect(status().isBadRequest())
-				.andExpect(jsonPath("$.message").value("원본과 이관 대상이 같다"));
+				.andExpect(jsonPath("$.message").value("이미 존재하는 프로젝트명입니다."));
+	}
+
+	@Test
+	void 원본_접속정보가_없으면_서비스를_호출하지_않고_400이다() throws Exception {
+		mockMvc.perform(post("/api/projects").contentType(MediaType.APPLICATION_JSON).content("""
+						{"name": "이름"}
+						"""))
+				.andExpect(status().isBadRequest());
+		verify(projectService, never()).create(any());
 	}
 
 	@Test
 	void 잘못된_접속정보는_서비스를_호출하지_않고_400이다() throws Exception {
-		String badBody = """
-				{
-				  "name": "이름",
-				  "rawConnection":  {"url":"oracle://localhost","username":"app","password":"pw","schema":"RAW"},
-				  "editConnection": {"url":"jdbc:oracle:thin:@localhost:1521/XE","username":"app","password":"pw","schema":"EDIT"}
-				}
-				""";
-
-		mockMvc.perform(post("/api/projects").contentType(MediaType.APPLICATION_JSON).content(badBody))
+		mockMvc.perform(post("/api/projects").contentType(MediaType.APPLICATION_JSON).content("""
+						{
+						  "name": "이름",
+						  "rawConnection": {"url":"oracle://localhost","username":"app","password":"pw","schema":"RAW"}
+						}
+						"""))
 				.andExpect(status().isBadRequest());
 		verify(projectService, never()).create(any());
 	}

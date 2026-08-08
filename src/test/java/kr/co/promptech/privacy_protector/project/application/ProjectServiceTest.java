@@ -18,7 +18,6 @@ class ProjectServiceTest {
 
 	private static final String URL = "jdbc:oracle:thin:@localhost:1521/XE";
 	private static final DbConnection RAW = new DbConnection(URL, "app", "pw", "RAW_SCHEMA");
-	private static final DbConnection EDIT = new DbConnection(URL, "app", "pw", "EDIT_SCHEMA");
 
 	private FakeProjectRepository repository;
 	private FakeConnectionTester tester;
@@ -32,29 +31,23 @@ class ProjectServiceTest {
 	}
 
 	@Test
-	void 프로젝트를_저장하고_id를_돌려준다() {
-		Long id = service.create(new CreateProjectCommand("고객정보 비식별화", RAW, EDIT));
+	void 원본_접속정보만으로_저장하고_id를_돌려준다() {
+		Long id = service.create(new CreateProjectCommand("고객정보 비식별화", RAW));
 
 		assertThat(id).isEqualTo(1L);
 		assertThat(repository.saved).hasSize(1);
 		assertThat(repository.saved.get(0).name()).isEqualTo("고객정보 비식별화");
+		assertThat(repository.saved.get(0).hasEditConnection()).isFalse();
 	}
 
 	@Test
 	void 이름이_중복되면_저장하지_않는다() {
-		service.create(new CreateProjectCommand("중복", RAW, EDIT));
+		service.create(new CreateProjectCommand("중복", RAW));
 
-		assertThatThrownBy(() -> service.create(new CreateProjectCommand("중복", RAW, EDIT)))
+		assertThatThrownBy(() -> service.create(new CreateProjectCommand("중복", RAW)))
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("이미 존재하는");
 		assertThat(repository.saved).hasSize(1);
-	}
-
-	@Test
-	void raw와_edit이_같으면_저장하지_않는다() {
-		assertThatThrownBy(() -> service.create(new CreateProjectCommand("사고", RAW, RAW)))
-				.isInstanceOf(IllegalArgumentException.class);
-		assertThat(repository.saved).isEmpty();
 	}
 
 	@Test

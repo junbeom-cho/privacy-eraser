@@ -14,7 +14,9 @@
 		) VALUES (
 			#{id}, #{project.name},
 			#{project.rawConnection.url}, #{project.rawConnection.username}, #{rawPassword}, #{project.rawConnection.schema},
-			#{project.editConnection.url}, #{project.editConnection.username}, #{editPassword}, #{project.editConnection.schema}
+			<!-- 이관 대상은 나중에 정할 수 있어 null 이 들어옵니다. jdbcType 이 없으면 드라이버가 타입을 몰라 실패합니다. -->
+			#{project.editConnection.url,jdbcType=VARCHAR}, #{project.editConnection.username,jdbcType=VARCHAR},
+			#{editPassword,jdbcType=VARCHAR}, #{project.editConnection.schema,jdbcType=VARCHAR}
 		)
 	</insert>
 

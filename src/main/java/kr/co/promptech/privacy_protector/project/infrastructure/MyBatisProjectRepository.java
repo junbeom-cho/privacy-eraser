@@ -20,7 +20,8 @@ public class MyBatisProjectRepository implements ProjectRepository {
 		Long id = projectMapper.nextProjectId();
 		projectMapper.insert(id, project,
 				credentialCipher.encrypt(project.rawConnection().password()),
-				credentialCipher.encrypt(project.editConnection().password()));
+				// 이관 대상은 나중에 정할 수 있으므로 없을 수 있습니다.
+				project.hasEditConnection() ? credentialCipher.encrypt(project.editConnection().password()) : null);
 		return id;
 	}
 
