@@ -14,7 +14,6 @@ const editConnection = reactive(emptyConnection())
 
 const loading = ref(true)
 const saving = ref(false)
-const saved = ref(false)
 const error = ref('')
 
 onMounted(async () => {
@@ -32,13 +31,12 @@ onMounted(async () => {
 
 async function submit() {
   saving.value = true
-  saved.value = false
   error.value = ''
   try {
     // 스키마가 비어 있으면 이관 대상을 아직 정하지 않은 것으로 봅니다.
     const edit = editConnection.schema.trim() ? editConnection : null
     await updateProject(id, name.value, rawConnection, edit)
-    saved.value = true
+    router.push({ name: 'project-list', query: { message: `'${name.value}' 프로젝트를 저장했습니다.` } })
   } catch (e) {
     error.value = e instanceof Error ? e.message : '저장하지 못했습니다.'
   } finally {
@@ -48,23 +46,29 @@ async function submit() {
 </script>
 
 <template>
-  <main class="project-edit">
-    <RouterLink to="/" class="back">← 목록</RouterLink>
-    <h1>프로젝트 수정</h1>
+  <main class="container py-4" style="max-width: 46rem">
+    <RouterLink to="/" class="link-secondary small text-decoration-none">← 목록</RouterLink>
+    <h1 class="h4 mt-2 mb-4">프로젝트 수정</h1>
 
-    <p v-if="loading">불러오는 중…</p>
+    <div v-if="error" class="alert alert-danger" role="alert">{{ error }}</div>
 
-    <form v-else @submit.prevent="submit">
-      <label class="name">
-        프로젝트 이름
-        <input v-model="name" required />
-      </label>
+    <div v-if="loading" class="text-body-secondary small">
+      <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+      불러오는 중
+    </div>
+
+    <form v-else class="vstack gap-3" @submit.prevent="submit">
+      <div>
+        <label class="form-label small">프로젝트 이름</label>
+        <input v-model="name" class="form-control" required />
+      </div>
 
       <DbConnectionFields
         v-model="rawConnection"
         title="원본 (raw_schema)"
         hint="비식별화 대상 원본입니다. 읽기만 합니다."
         schema-placeholder="RAW_SCHEMA"
+        password-hint="비워두면 기존 비밀번호를 그대로 씁니다."
       />
 
       <DbConnectionFields
@@ -72,58 +76,16 @@ async function submit() {
         title="이관 대상 (edit_schema)"
         hint="비식별화 결과가 저장됩니다. 스키마를 비워두면 아직 정하지 않은 것으로 둡니다."
         schema-placeholder="EDIT_SCHEMA"
+        password-hint="비워두면 기존 비밀번호를 그대로 씁니다."
       />
 
-      <button type="submit" class="primary" :disabled="saving">
-        {{ saving ? '저장 중…' : '저장' }}
-      </button>
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary" :disabled="saving">
+          <span v-if="saving" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+          {{ saving ? '저장 중' : '저장' }}
+        </button>
+        <RouterLink to="/" class="btn btn-outline-secondary">취소</RouterLink>
+      </div>
     </form>
-
-    <p v-if="saved" class="ok" role="status">저장했습니다.</p>
-    <p v-if="error" class="error" role="alert">{{ error }}</p>
   </main>
 </template>
-
-<style lang="scss" scoped>
-.project-edit {
-  max-width: 46rem;
-  margin: 0 auto;
-  padding: 2rem 1rem 4rem;
-
-  .back {
-    display: inline-block;
-    margin-bottom: 1rem;
-    color: var(--muted);
-    font-size: 0.9rem;
-  }
-
-  h1 {
-    margin: 0 0 1.5rem;
-    font-size: 1.5rem;
-  }
-
-  form {
-    display: grid;
-    gap: 1.25rem;
-  }
-
-  .name {
-    display: grid;
-    gap: 0.3rem;
-    font-size: 0.9rem;
-  }
-
-  .primary {
-    justify-self: start;
-    padding: 0.6rem 1.4rem;
-  }
-
-  .ok {
-    color: var(--success);
-  }
-
-  .error {
-    color: var(--danger);
-  }
-}
-</style>

@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import {
-  testConnection,
-  type ConnectionTestResult,
-  type DbConnectionInput,
-} from '@/api/projects'
+import { testConnection, type ConnectionTestResult, type DbConnectionInput } from '@/api/projects'
 
-defineProps<{ title: string; hint: string; schemaPlaceholder: string }>()
+defineProps<{
+  title: string
+  hint: string
+  schemaPlaceholder: string
+  /** 수정 화면에서는 비밀번호를 비워두면 기존 값을 유지한다고 안내합니다. */
+  passwordHint?: string
+}>()
 
 const connection = defineModel<DbConnectionInput>({ required: true })
 
@@ -30,74 +32,60 @@ async function runTest() {
 </script>
 
 <template>
-  <fieldset class="connection">
-    <legend>{{ title }}</legend>
-    <p class="hint">{{ hint }}</p>
+  <div class="card">
+    <div class="card-header d-flex align-items-center justify-content-between">
+      <span class="fw-semibold">{{ title }}</span>
+      <button
+        type="button"
+        class="btn btn-sm btn-outline-secondary"
+        :disabled="testing"
+        @click="runTest"
+      >
+        <span v-if="testing" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+        {{ testing ? '확인 중' : '접속 테스트' }}
+      </button>
+    </div>
 
-    <label>
-      JDBC URL
-      <input v-model="connection.url" spellcheck="false" />
-    </label>
-    <label>
-      사용자명
-      <input v-model="connection.username" autocomplete="off" />
-    </label>
-    <label>
-      비밀번호
-      <input v-model="connection.password" type="password" autocomplete="new-password" />
-    </label>
-    <label>
-      스키마
-      <input v-model="connection.schema" :placeholder="schemaPlaceholder" />
-    </label>
+    <div class="card-body">
+      <p class="text-body-secondary small mb-3">{{ hint }}</p>
 
-    <button type="button" :disabled="testing" @click="runTest">
-      {{ testing ? '접속 확인 중…' : '접속 테스트' }}
-    </button>
+      <div class="row g-3">
+        <div class="col-12">
+          <label class="form-label small">JDBC URL</label>
+          <input v-model="connection.url" class="form-control font-mono" spellcheck="false" />
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small">사용자명</label>
+          <input v-model="connection.username" class="form-control" autocomplete="off" />
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small">비밀번호</label>
+          <input
+            v-model="connection.password"
+            type="password"
+            class="form-control"
+            autocomplete="new-password"
+          />
+          <div v-if="passwordHint" class="form-text small">{{ passwordHint }}</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small">스키마</label>
+          <input
+            v-model="connection.schema"
+            class="form-control font-mono"
+            :placeholder="schemaPlaceholder"
+          />
+        </div>
+      </div>
 
-    <p v-if="result" class="result" :class="{ ok: result.success }" role="status">
-      {{ result.message }}
-    </p>
-  </fieldset>
+      <div
+        v-if="result"
+        class="alert mt-3 mb-0 py-2 small"
+        :class="result.success ? 'alert-success' : 'alert-danger'"
+        role="status"
+      >
+        {{ result.message }}
+      </div>
+    </div>
+  </div>
 </template>
-
-<style lang="scss" scoped>
-.connection {
-  display: grid;
-  gap: 0.75rem;
-  padding: 1rem 1.25rem 1.25rem;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-
-  legend {
-    padding: 0 0.4rem;
-    font-weight: 600;
-  }
-
-  .hint {
-    margin: 0;
-    color: var(--muted);
-    font-size: 0.85rem;
-  }
-
-  label {
-    display: grid;
-    gap: 0.3rem;
-    font-size: 0.9rem;
-  }
-
-  button {
-    justify-self: start;
-  }
-
-  .result {
-    margin: 0;
-    font-size: 0.9rem;
-    color: var(--danger);
-
-    &.ok {
-      color: var(--success);
-    }
-  }
-}
-</style>

@@ -97,7 +97,13 @@ npm --prefix frontend run build   # src/main/resources/static 으로 빌드 → 
 
 ## 프론트엔드
 - API 경로는 전부 `/api` 아래에 둡니다. dev 프록시와 prod 서빙이 이 접두사에 맞춰져 있습니다.
-- 스타일은 SFC의 `<style lang="scss" scoped>`에 씁니다. 전역 CSS 파일을 늘리지 않습니다.
+- **UI는 Bootstrap 5.3 클래스로 만듭니다.** 커스텀 CSS 변수·유틸리티를 새로 만들지 않습니다.
+  디자인 체계가 둘이면 한쪽이 반드시 어긋납니다. Bootstrap에 없는 것만 SFC의 `<style lang="scss" scoped>`에 씁니다.
+- **Bootstrap의 JS는 쓰지 않습니다.** DOM을 직접 조작해 Vue와 소유권이 겹칩니다. 모달·토글 같은 동적 요소는
+  Bootstrap 클래스에 Vue 반응성을 얹어 만듭니다 (`ProjectListView`의 삭제 확인 모달 참고).
+- 다크 모드는 `data-bs-theme`으로만 켜집니다. `main.ts`에서 `prefers-color-scheme`을 보고 설정합니다.
+- 저장·삭제에 성공하면 목록으로 돌아가고 결과를 알립니다. 실패하면 화면에 남아 사유를 보여줍니다.
+  메시지는 라우터 쿼리(`?message=`)로 넘깁니다. 상태관리 라이브러리를 넣지 않기 위한 선택입니다.
 - `src/main/resources/static/`은 빌드 산출물이라 gitignore 대상입니다. 여기에 직접 파일을 만들지 않습니다.
 - 상태관리 라이브러리(Pinia 등)는 아직 없습니다. props/emit으로 안 되는 상황이 실제로 생기면 그때 넣습니다.
 - API 응답의 컬럼 값은 이미 마스킹된 값입니다. 프론트에서 원본 값을 요청하거나 캐시하지 않습니다.

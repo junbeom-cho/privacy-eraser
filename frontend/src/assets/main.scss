@@ -1,86 +1,12 @@
-:root {
-  --bg: #ffffff;
-  --fg: #1f2328;
-  --muted: #6b7280;
-  --line: #d0d7de;
-  --accent: #2563eb;
-  --success: #15803d;
-  --danger: #b91c1c;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #16181d;
-    --fg: #e6e6e6;
-    --muted: #9aa1ab;
-    --line: #343a44;
-    --accent: #60a5fa;
-    --success: #4ade80;
-    --danger: #f87171;
-  }
-}
-
-* {
-  box-sizing: border-box;
-}
+// Bootstrap 5.3. 색·간격·컴포넌트는 전부 여기서 옵니다.
+// 커스텀 CSS 변수를 따로 두지 않습니다 - 디자인 체계가 둘이면 한쪽이 반드시 어긋납니다.
+@use 'bootstrap/scss/bootstrap' as *;
 
 body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--fg);
   font-family: system-ui, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
-  line-height: 1.5;
 }
 
-input {
-  padding: 0.5rem 0.6rem;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--bg);
-  color: inherit;
-  font: inherit;
-}
-
-a {
-  color: var(--accent);
-  text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
-  }
-}
-
-// a 태그에도 .button 을 주면 같은 모양이 되도록 함께 선언합니다.
-button,
-.button {
-  display: inline-block;
-  padding: 0.45rem 1rem;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: var(--bg);
-  color: inherit;
-  font: inherit;
-  line-height: 1.2;
-  text-decoration: none;
-  cursor: pointer;
-
-  &:hover {
-    border-color: var(--accent);
-    text-decoration: none;
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: progress;
-  }
-
-  &.primary {
-    border-color: var(--accent);
-    background: var(--accent);
-    color: #fff;
-  }
-
-  &.danger {
-    color: var(--danger);
-  }
+// JDBC URL 처럼 눈으로 대조하는 값은 고정폭이 읽기 편합니다.
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }

@@ -1,10 +1,25 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { deleteProject, listProjects, type ProjectView } from '@/api/projects'
+
+const route = useRoute()
+const router = useRouter()
 
 const projects = ref<ProjectView[]>([])
 const loading = ref(true)
 const error = ref('')
+
+// 생성·수정 화면이 돌아오면서 결과를 쿼리로 넘깁니다.
+const notice = ref(typeof route.query.message === 'string' ? route.query.message : '')
+function dismissNotice() {
+  notice.value = ''
+  router.replace({ name: 'project-list' })
+}
+
+/** Bootstrap 모달을 Vue 로 제어합니다. Bootstrap JS 는 DOM 을 직접 건드려 Vue 와 겹칩니다. */
+const target = ref<ProjectView | null>(null)
+const deleting = ref(false)
 
 async function load() {
   loading.value = true
@@ -18,13 +33,19 @@ async function load() {
   }
 }
 
-async function remove(project: ProjectView) {
-  if (!confirm(`'${project.name}' 프로젝트를 삭제합니다. 되돌릴 수 없습니다.`)) return
+async function confirmDelete() {
+  if (!target.value) return
+  deleting.value = true
   try {
-    await deleteProject(project.id)
+    await deleteProject(target.value.id)
+    notice.value = `'${target.value.name}' 프로젝트를 삭제했습니다.`
+    target.value = null
     await load()
   } catch (e) {
     error.value = e instanceof Error ? e.message : '삭제하지 못했습니다.'
+    target.value = null
+  } finally {
+    deleting.value = false
   }
 }
 
@@ -32,106 +53,94 @@ onMounted(load)
 </script>
 
 <template>
-  <main class="project-list">
-    <header>
-      <h1>프로젝트</h1>
-      <RouterLink to="/projects/new" class="button primary">새 프로젝트</RouterLink>
-    </header>
+  <main class="container py-4" style="max-width: 56rem">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+      <h1 class="h4 mb-0">프로젝트</h1>
+      <RouterLink to="/projects/new" class="btn btn-primary">새 프로젝트</RouterLink>
+    </div>
 
-    <p v-if="loading">불러오는 중…</p>
-    <p v-else-if="error" class="error" role="alert">{{ error }}</p>
+    <div v-if="notice" class="alert alert-success alert-dismissible" role="status">
+      {{ notice }}
+      <button type="button" class="btn-close" aria-label="닫기" @click="dismissNotice"></button>
+    </div>
+    <div v-if="error" class="alert alert-danger" role="alert">{{ error }}</div>
 
-    <p v-else-if="projects.length === 0" class="empty">
-      아직 프로젝트가 없습니다. 비식별화할 원본 DB를 등록해 시작하세요.
-    </p>
+    <div v-if="loading" class="text-body-secondary small">
+      <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+      불러오는 중
+    </div>
 
-    <table v-else>
-      <thead>
-        <tr>
-          <th>이름</th>
-          <th>원본</th>
-          <th>이관 대상</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="project in projects" :key="project.id">
-          <td>
-            <RouterLink :to="`/projects/${project.id}`">{{ project.name }}</RouterLink>
-          </td>
-          <td class="mono">{{ project.rawConnection.schema }}</td>
-          <td class="mono">
-            <span v-if="project.editConnection">{{ project.editConnection.schema }}</span>
-            <span v-else class="muted">미지정</span>
-          </td>
-          <td class="actions">
-            <RouterLink :to="`/projects/${project.id}`" class="button">수정</RouterLink>
-            <button type="button" class="danger" @click="remove(project)">삭제</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div v-else-if="projects.length === 0" class="card">
+      <div class="card-body text-center py-5">
+        <p class="text-body-secondary mb-3">아직 프로젝트가 없습니다.</p>
+        <RouterLink to="/projects/new" class="btn btn-outline-primary">
+          첫 프로젝트 만들기
+        </RouterLink>
+      </div>
+    </div>
+
+    <div v-else class="card">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr class="small text-body-secondary">
+              <th scope="col">이름</th>
+              <th scope="col">원본</th>
+              <th scope="col">이관 대상</th>
+              <th scope="col" class="text-end">작업</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="project in projects" :key="project.id">
+              <td>
+                <RouterLink :to="`/projects/${project.id}`" class="fw-medium text-decoration-none">
+                  {{ project.name }}
+                </RouterLink>
+              </td>
+              <td><span class="badge text-bg-secondary font-mono">{{ project.rawConnection.schema }}</span></td>
+              <td>
+                <span v-if="project.editConnection" class="badge text-bg-secondary font-mono">
+                  {{ project.editConnection.schema }}
+                </span>
+                <span v-else class="text-body-secondary small">미지정</span>
+              </td>
+              <td class="text-end">
+                <RouterLink :to="`/projects/${project.id}`" class="btn btn-sm btn-outline-secondary me-1">
+                  수정
+                </RouterLink>
+                <button type="button" class="btn btn-sm btn-outline-danger" @click="target = project">
+                  삭제
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 삭제 확인 -->
+    <div v-if="target" class="modal d-block" tabindex="-1" role="dialog">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 class="modal-title h6 mb-0">프로젝트 삭제</h2>
+            <button type="button" class="btn-close" aria-label="닫기" @click="target = null"></button>
+          </div>
+          <div class="modal-body">
+            <p class="mb-0">
+              <strong>{{ target.name }}</strong> 프로젝트를 삭제합니다. 되돌릴 수 없습니다.
+            </p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" @click="target = null">취소</button>
+            <button type="button" class="btn btn-danger" :disabled="deleting" @click="confirmDelete">
+              <span v-if="deleting" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+              삭제
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div v-if="target" class="modal-backdrop fade show"></div>
   </main>
 </template>
-
-<style lang="scss" scoped>
-.project-list {
-  max-width: 52rem;
-  margin: 0 auto;
-  padding: 2rem 1rem 4rem;
-
-  header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 1.5rem;
-
-    h1 {
-      margin: 0;
-      font-size: 1.5rem;
-    }
-  }
-
-  .empty {
-    padding: 2.5rem 0;
-    color: var(--muted);
-    text-align: center;
-  }
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.9rem;
-  }
-
-  th,
-  td {
-    padding: 0.6rem 0.5rem;
-    border-bottom: 1px solid var(--line);
-    text-align: left;
-  }
-
-  th {
-    color: var(--muted);
-    font-weight: 600;
-  }
-
-  .mono {
-    font-family: ui-monospace, monospace;
-  }
-
-  .muted {
-    color: var(--muted);
-  }
-
-  .actions {
-    display: flex;
-    gap: 0.4rem;
-    justify-content: flex-end;
-  }
-
-  .error {
-    color: var(--danger);
-  }
-}
-</style>
