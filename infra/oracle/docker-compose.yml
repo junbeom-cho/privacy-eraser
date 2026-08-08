@@ -2,13 +2,12 @@ name: oracle23ai
 
 services:
   oracle:
-    image: oriolrt/oracle-23ai:latest
+    image: container-registry.oracle.com/database/free:latest
     container_name: oracle23ai
-    platform: linux/amd64
     ports:
       - "1521:1521"
     environment:
-      ORACLE_PWD: ${ORACLE_PWD:-ptech6441}
+      ORACLE_PWD: ptech6441
     shm_size: "2gb"
     volumes:
       - oracle-data:/opt/oracle/oradata
