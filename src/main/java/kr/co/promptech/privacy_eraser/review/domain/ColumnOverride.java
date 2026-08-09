@@ -1,6 +1,7 @@
 package kr.co.promptech.privacy_eraser.review.domain;
 
 import kr.co.promptech.privacy_eraser.keyword.domain.MaskingPolicy;
+import lombok.Getter;
 
 import java.util.Locale;
 import java.util.Objects;
@@ -10,6 +11,7 @@ import java.util.Objects;
  * <p>
  * 엔티티라 클래스입니다. 테이블·컬럼명은 Oracle 관례에 맞춰 대문자로 맞춥니다.
  */
+@Getter
 public class ColumnOverride {
 
 	private final Long id;
@@ -61,30 +63,6 @@ public class ColumnOverride {
 
 	public String key() {
 		return tableName + "." + columnName;
-	}
-
-	public Long getId() {
-		return id;
-	}
-
-	public Long getProjectId() {
-		return projectId;
-	}
-
-	public String getTableName() {
-		return tableName;
-	}
-
-	public String getColumnName() {
-		return columnName;
-	}
-
-	public boolean isMasked() {
-		return masked;
-	}
-
-	public MaskingPolicy getPolicy() {
-		return policy;
 	}
 
 	@Override

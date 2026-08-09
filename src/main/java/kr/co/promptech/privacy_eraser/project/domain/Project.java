@@ -1,5 +1,7 @@
 package kr.co.promptech.privacy_eraser.project.domain;
 
+import lombok.Getter;
+
 import java.util.Objects;
 
 /**
@@ -12,6 +14,7 @@ import java.util.Objects;
  * 대상으로 할지 정해지지 않았으므로, 원본을 탐색한 뒤 이관을 실행할 때 정하면 됩니다.
  * 다만 값이 있다면 원본과 같은 스키마일 수 없습니다.
  */
+@Getter
 public class Project {
 
 	private final Long id;
@@ -53,22 +56,6 @@ public class Project {
 
 	public boolean hasEditConnection() {
 		return editConnection != null;
-	}
-
-	public Long getId() {
-		return id;
-	}
-
-	public String getName() {
-		return name;
-	}
-
-	public DbConnection getRawConnection() {
-		return rawConnection;
-	}
-
-	public DbConnection getEditConnection() {
-		return editConnection;
 	}
 
 	/**

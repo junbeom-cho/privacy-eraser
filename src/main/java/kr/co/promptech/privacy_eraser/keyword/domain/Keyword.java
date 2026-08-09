@@ -1,5 +1,7 @@
 package kr.co.promptech.privacy_eraser.keyword.domain;
 
+import lombok.Getter;
+
 import java.util.Locale;
 import java.util.Objects;
 
@@ -8,6 +10,7 @@ import java.util.Objects;
  * <p>
  * 엔티티라 클래스입니다. 키워드는 프로젝트마다 따로 관리하며, 키워드 하나에 정책 하나입니다.
  */
+@Getter
 public class Keyword {
 
 	private final Long id;
@@ -60,26 +63,6 @@ public class Keyword {
 
 	public boolean belongsTo(Long projectId) {
 		return this.projectId.equals(projectId);
-	}
-
-	public Long getId() {
-		return id;
-	}
-
-	public Long getProjectId() {
-		return projectId;
-	}
-
-	public String getWord() {
-		return word;
-	}
-
-	public KeywordType getType() {
-		return type;
-	}
-
-	public MaskingPolicy getPolicy() {
-		return policy;
 	}
 
 	@Override
