@@ -13,6 +13,7 @@ import kr.co.promptech.privacy_eraser.review.domain.ColumnOverrideRepository;
 import kr.co.promptech.privacy_eraser.review.domain.ColumnReview;
 import kr.co.promptech.privacy_eraser.review.domain.DecisionSource;
 import kr.co.promptech.privacy_eraser.schema.domain.ColumnMetadata;
+import kr.co.promptech.privacy_eraser.schema.domain.SampleReader;
 import kr.co.promptech.privacy_eraser.schema.domain.SchemaReader;
 import kr.co.promptech.privacy_eraser.schema.domain.TableMetadata;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -37,6 +39,7 @@ class ReviewServiceTest {
 	private FakeKeywordRepository keywords;
 	private FakeOverrideRepository overrides;
 	private FakeSchemaReader reader;
+	private FakeSampleReader samples;
 	private ReviewService service;
 
 	@BeforeEach
@@ -45,12 +48,13 @@ class ReviewServiceTest {
 		keywords = new FakeKeywordRepository();
 		overrides = new FakeOverrideRepository();
 		reader = new FakeSchemaReader();
+		samples = new FakeSampleReader();
 		projects.saved.add(new Project(1L, "프로젝트", RAW, null));
 		reader.tables = List.of(new TableMetadata("EMPLOYEES", List.of(
 				ColumnMetadata.number("EMPLOYEE_ID", 6, 0, false),
 				ColumnMetadata.character("PHONE_NUMBER", "VARCHAR2", 20, true),
 				ColumnMetadata.number("SALARY", 8, 2, true))));
-		service = new ReviewService(projects, keywords, overrides, reader);
+		service = new ReviewService(projects, keywords, overrides, reader, samples);
 	}
 
 	private ColumnReview reviewOf(String columnName) {
@@ -95,6 +99,42 @@ class ReviewServiceTest {
 	@Test
 	void 없는_프로젝트는_예외다() {
 		assertThatThrownBy(() -> service.review(999L)).isInstanceOf(ProjectNotFoundException.class);
+	}
+
+	// ===== 표본 데이터 =====
+
+	@Test
+	void 표본_값과_마스킹된_결과를_함께_돌려준다() {
+		keywords.saved.add(Keyword.markFor(1L, "phone", 뒤_4자리));
+		samples.row = Map.of("PHONE_NUMBER", "01012345678");
+
+		assertThat(reviewOf("PHONE_NUMBER").sample()).isEqualTo("01012345678");
+		assertThat(reviewOf("PHONE_NUMBER").maskedSample()).isEqualTo("0101234****");
+	}
+
+	@Test
+	void 마스킹_대상이_아니면_표본이_그대로다() {
+		samples.row = Map.of("SALARY", "24000");
+
+		assertThat(reviewOf("SALARY").maskedSample()).isEqualTo("24000");
+	}
+
+	@Test
+	void 표본이_통째로_가려지면_알린다() {
+		keywords.saved.add(Keyword.markFor(1L, "phone", 뒤_4자리));
+		samples.row = Map.of("PHONE_NUMBER", "123");
+
+		assertThat(reviewOf("PHONE_NUMBER").maskedSample()).isEqualTo("***");
+		assertThat(reviewOf("PHONE_NUMBER").sampleFullyMasked()).isTrue();
+	}
+
+	@Test
+	void 표본을_읽지_못해도_검수는_된다() {
+		// 권한이 없거나 테이블이 비어 있을 수 있습니다. 그래도 판정은 보여야 합니다.
+		samples.failure = new IllegalStateException("ORA-00942: table or view does not exist");
+
+		assertThat(service.review(1L)).hasSize(3);
+		assertThat(reviewOf("SALARY").sample()).isNull();
 	}
 
 	// ===== 사용자 지정 저장 =====
@@ -254,6 +294,19 @@ class ReviewServiceTest {
 		@Override
 		public boolean existsByName(String name) {
 			return false;
+		}
+	}
+
+	private static class FakeSampleReader implements SampleReader {
+		private Map<String, String> row = Map.of();
+		private RuntimeException failure;
+
+		@Override
+		public Map<String, String> readSampleRow(DbConnection connection, String tableName) {
+			if (failure != null) {
+				throw failure;
+			}
+			return row;
 		}
 	}
 

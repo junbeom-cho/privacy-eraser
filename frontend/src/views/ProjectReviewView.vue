@@ -94,6 +94,7 @@ onMounted(load)
     </div>
     <p class="text-body-secondary small mb-3">
       키워드 판정은 <strong>제안</strong>입니다. 컬럼마다 직접 바꿀 수 있고, 바꾼 값이 항상 우선합니다.
+      표본은 원본에서 읽은 <strong>실제 값</strong>이니 화면 공유에 주의하세요.
     </p>
 
     <div v-if="error" class="alert alert-danger" role="alert">{{ error }}</div>
@@ -121,6 +122,7 @@ onMounted(load)
                 <th scope="col">타입</th>
                 <th scope="col" style="width: 6rem">마스킹</th>
                 <th scope="col" style="width: 15rem">정책</th>
+                <th scope="col">표본 → 마스킹 결과</th>
                 <th scope="col">판정 근거</th>
               </tr>
             </thead>
@@ -170,6 +172,25 @@ onMounted(load)
                     />
                   </div>
                   <span v-else class="text-body-secondary">—</span>
+                </td>
+
+                <!-- 정책이 값을 어떻게 바꾸는지 눈으로 확인하는 자리입니다. -->
+                <td class="font-mono">
+                  <template v-if="row.sample !== null">
+                    <span class="text-body-secondary">{{ row.sample }}</span>
+                    <template v-if="row.masked">
+                      <span class="mx-1 text-body-secondary">→</span>
+                      <span :class="row.sampleFullyMasked ? 'text-warning' : 'text-primary'">
+                        {{ row.maskedSample }}
+                      </span>
+                      <span
+                        v-if="row.sampleFullyMasked"
+                        class="badge text-bg-warning ms-1 fw-normal"
+                        title="정책이 값보다 길어 표본이 통째로 가려집니다."
+                      >전체</span>
+                    </template>
+                  </template>
+                  <span v-else class="text-body-secondary opacity-50">NULL</span>
                 </td>
 
                 <td>

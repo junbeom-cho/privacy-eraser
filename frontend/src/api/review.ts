@@ -17,6 +17,12 @@ export interface ColumnReviewView {
   matchedKeyword: string | null
   /** 정책이 컬럼 길이보다 길어 값 전체가 가려질 수 있습니다. */
   policyExceedsLength: boolean
+  /** 원본에서 읽은 실제 값입니다. 진짜 개인정보이므로 화면에만 씁니다. */
+  sample: string | null
+  /** 표본에 정책을 적용한 결과입니다. */
+  maskedSample: string | null
+  /** 표본이 통째로 가려집니다. 정책이 값보다 길다는 뜻입니다. */
+  sampleFullyMasked: boolean
 }
 
 export const SOURCE_LABEL: Record<DecisionSource, string> = {

@@ -68,9 +68,14 @@ public class ReviewRestController {
 		}
 	}
 
+	/**
+	 * {@code sample} 은 원본에서 읽은 <b>진짜 개인정보</b>입니다. 화면 표시 전용이라
+	 * 로그·캐시에 남기지 않습니다.
+	 */
 	public record ColumnReviewResponse(String tableName, String columnName, String type, boolean nullable,
 			List<String> tokens, boolean masked, MaskingDirection direction, Integer length,
-			DecisionSource source, String matchedKeyword, boolean policyExceedsLength) {
+			DecisionSource source, String matchedKeyword, boolean policyExceedsLength,
+			String sample, String maskedSample, boolean sampleFullyMasked) {
 
 		static ColumnReviewResponse from(ColumnReview review) {
 			MaskingPolicy policy = review.decision().policy();
@@ -85,7 +90,10 @@ public class ReviewRestController {
 					policy == null ? null : policy.length(),
 					review.decision().source(),
 					review.decision().matchedKeyword(),
-					review.policyExceedsColumnLength());
+					review.policyExceedsColumnLength(),
+					review.sample(),
+					review.maskedSample(),
+					review.sampleFullyMasked());
 		}
 	}
 }

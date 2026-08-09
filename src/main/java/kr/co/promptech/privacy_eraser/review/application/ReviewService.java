@@ -11,6 +11,7 @@ import kr.co.promptech.privacy_eraser.review.domain.ColumnReview;
 import kr.co.promptech.privacy_eraser.review.domain.KeywordJudge;
 import kr.co.promptech.privacy_eraser.review.domain.MaskingDecision;
 import kr.co.promptech.privacy_eraser.schema.domain.ColumnMetadata;
+import kr.co.promptech.privacy_eraser.schema.domain.SampleReader;
 import kr.co.promptech.privacy_eraser.schema.domain.SchemaReader;
 import kr.co.promptech.privacy_eraser.schema.domain.TableMetadata;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,7 @@ public class ReviewService {
 	private final KeywordRepository keywordRepository;
 	private final ColumnOverrideRepository overrideRepository;
 	private final SchemaReader schemaReader;
+	private final SampleReader sampleReader;
 
 	/**
 	 * 원본의 모든 컬럼에 판정을 붙여 돌려줍니다.
@@ -45,9 +47,12 @@ public class ReviewService {
 
 		List<ColumnReview> rows = new ArrayList<>();
 		for (TableMetadata table : schemaReader.readTables(project.getRawConnection())) {
+			// 표본은 테이블마다 한 행만 읽습니다. 컬럼마다 읽으면 조회가 컬럼 수만큼 늘어납니다.
+			Map<String, String> sample = readSampleQuietly(project, table.name());
 			for (ColumnMetadata column : table.columns()) {
 				MaskingDecision override = overrides.get(key(table.name(), column.name()));
-				rows.add(new ColumnReview(table.name(), column, judge.judgeWithOverride(column, override)));
+				rows.add(new ColumnReview(table.name(), column,
+						judge.judgeWithOverride(column, override), sample.get(column.name())));
 			}
 		}
 		return rows;
@@ -74,6 +79,19 @@ public class ReviewService {
 		requireProject(projectId);
 		overrideRepository.findOne(projectId, tableName, columnName)
 				.ifPresent(override -> overrideRepository.deleteById(override.getId()));
+	}
+
+	/**
+	 * 표본을 못 읽어도 검수 자체는 되어야 합니다. 권한이 없거나 테이블이 비어 있을 수 있습니다.
+	 * 실패 사유를 값으로 남기지 않는 이유는, 그 자리에 개인정보가 아닌 오류 문자열이 섞이면 헷갈리기 때문입니다.
+	 */
+	private Map<String, String> readSampleQuietly(Project project, String tableName) {
+		try {
+			return sampleReader.readSampleRow(project.getRawConnection(), tableName);
+		}
+		catch (RuntimeException e) {
+			return Map.of();
+		}
 	}
 
 	private Project requireProject(Long projectId) {
