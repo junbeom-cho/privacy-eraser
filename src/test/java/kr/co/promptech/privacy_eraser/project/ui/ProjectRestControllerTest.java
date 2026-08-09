@@ -31,9 +31,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(ProjectController.class)
+@WebMvcTest(ProjectRestController.class)
 @Import(SecurityConfig.class)
-class ProjectControllerTest {
+class ProjectRestControllerTest {
 
 	private static final String URL = "jdbc:oracle:thin:@localhost:1521/XE";
 	private static final DbConnection RAW = new DbConnection(URL, "app", "비밀번호원문", "RAW_SCHEMA");

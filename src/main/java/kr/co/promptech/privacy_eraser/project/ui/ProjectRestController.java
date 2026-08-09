@@ -23,11 +23,11 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/projects")
-public class ProjectController {
+public class ProjectRestController {
 
 	private final ProjectService projectService;
 
-	public ProjectController(ProjectService projectService) {
+	public ProjectRestController(ProjectService projectService) {
 		this.projectService = projectService;
 	}
 

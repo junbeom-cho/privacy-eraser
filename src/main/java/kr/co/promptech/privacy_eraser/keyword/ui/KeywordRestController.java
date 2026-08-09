@@ -24,11 +24,11 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/projects/{projectId}/keywords")
-public class KeywordController {
+public class KeywordRestController {
 
 	private final KeywordService keywordService;
 
-	public KeywordController(KeywordService keywordService) {
+	public KeywordRestController(KeywordService keywordService) {
 		this.keywordService = keywordService;
 	}
 

@@ -16,11 +16,11 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/projects/{projectId}/tables")
-public class SchemaController {
+public class SchemaRestController {
 
 	private final SchemaService schemaService;
 
-	public SchemaController(SchemaService schemaService) {
+	public SchemaRestController(SchemaService schemaService) {
 		this.schemaService = schemaService;
 	}
 

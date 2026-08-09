@@ -1,7 +1,7 @@
 package kr.co.promptech.privacy_eraser.config;
 
 import kr.co.promptech.privacy_eraser.project.application.ProjectService;
-import kr.co.promptech.privacy_eraser.project.ui.ProjectController;
+import kr.co.promptech.privacy_eraser.project.ui.ProjectRestController;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -17,7 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * 아직 인증 요구사항이 없어 모든 요청을 허용한다. 인증을 도입하면 이 테스트부터 바꾼다.
  */
-@WebMvcTest(ProjectController.class)
+@WebMvcTest(ProjectRestController.class)
 @Import(SecurityConfig.class)
 class SecurityConfigTest {
 

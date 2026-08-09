@@ -2,7 +2,7 @@ package kr.co.promptech.privacy_eraser.config;
 
 import kr.co.promptech.privacy_eraser.project.application.ProjectService;
 import kr.co.promptech.privacy_eraser.project.domain.ProjectNotFoundException;
-import kr.co.promptech.privacy_eraser.project.ui.ProjectController;
+import kr.co.promptech.privacy_eraser.project.ui.ProjectRestController;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -20,7 +20,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(ProjectController.class)
+@WebMvcTest(ProjectRestController.class)
 @Import({ SecurityConfig.class, GlobalExceptionHandler.class })
 class GlobalExceptionHandlerTest {
 

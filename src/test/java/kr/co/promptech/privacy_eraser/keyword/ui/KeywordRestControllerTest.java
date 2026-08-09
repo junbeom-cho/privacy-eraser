@@ -31,9 +31,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(KeywordController.class)
+@WebMvcTest(KeywordRestController.class)
 @Import(SecurityConfig.class)
-class KeywordControllerTest {
+class KeywordRestControllerTest {
 
 	private static final String DO_BODY = """
 			{"word":"phone","type":"DO","direction":"FROM_END","length":4}
