@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, inject, onMounted, ref, type Ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { messageOf } from '@/api/http'
+import type { ProjectView } from '@/api/projects'
 import { DIRECTION_LABEL, type MaskingDirection } from '@/api/keywords'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import {
@@ -15,6 +16,10 @@ import {
 
 const route = useRoute()
 const projectId = Number(route.params.id)
+const project = inject<Ref<ProjectView | null>>('workspaceProject')
+
+// 이관은 이관 대상 접속 정보가 있어야 시작할 수 있습니다.
+const canMigrate = computed(() => Boolean(project?.value?.editConnection))
 
 const rows = ref<ColumnReviewView[]>([])
 const loading = ref(true)
@@ -259,7 +264,29 @@ onMounted(load)
           </table>
         </div>
       </div>
+
+      <div class="d-flex align-items-center mt-3">
+        <p class="text-body-secondary small mb-0">
+          여기서 확정한 대로 이관합니다. 마스킹 대상 {{ maskedCount }}개 컬럼.
+        </p>
+        <RouterLink
+          v-if="canMigrate"
+          :to="`/projects/${projectId}/migration`"
+          class="btn btn-outline-primary ms-auto text-nowrap"
+        >
+          다음 단계 · 이관 →
+        </RouterLink>
+        <RouterLink
+          v-else
+          :to="`/projects/${projectId}`"
+          class="btn btn-outline-secondary ms-auto text-nowrap"
+          title="이관하려면 이관 대상 접속 정보가 필요합니다."
+        >
+          이관 대상 접속 정보 등록 →
+        </RouterLink>
+      </div>
     </template>
+
     <ConfirmModal
       v-if="confirmingRevertAll"
       title="전체 되돌리기"

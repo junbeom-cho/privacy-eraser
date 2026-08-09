@@ -31,6 +31,8 @@ async function loadSummary() {
 
 // 하위 단계에서 값이 바뀌면 표시줄을 갱신해야 합니다.
 provide('reloadWorkspace', loadSummary)
+// 하위 단계가 이관 가능 여부 등을 판단하려면 프로젝트가 필요합니다. ref 를 그대로 넘겨 반응성을 유지합니다.
+provide('workspaceProject', project)
 
 const steps = computed(() => [
   {
