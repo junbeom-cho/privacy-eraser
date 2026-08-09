@@ -117,6 +117,8 @@ npm --prefix frontend run build   # src/main/resources/static 으로 빌드 → 
 - `${}`에 넣는 식별자는 DB 메타데이터 조회 결과에 존재하는지 확인한 값만 씁니다.
   사용자 입력 문자열을 그대로 넘기면 SQL injection입니다. 검증은 한 곳에 모읍니다.
 - 매퍼는 XML 하나로 통일합니다 (어노테이션 SQL과 섞지 않습니다). 동적 SQL이 많은 프로젝트라 XML이 맞습니다.
+- `resultMap` 의 `javaType="boolean"` 은 `java.lang.Boolean` 입니다. record 컴포넌트가 원시형이면
+  **`_boolean`** 으로 써야 생성자를 찾습니다. 결과 매핑은 DB 없이 검증할 수 없으니 실제 DB로 한 번은 돌려봅니다.
 - 대량 복사는 한 건씩 INSERT 하지 않습니다. `ExecutorType.BATCH` + fetch size를 지정합니다.
 
 ## 프론트엔드
