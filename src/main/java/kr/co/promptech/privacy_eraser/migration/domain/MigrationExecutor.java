@@ -20,4 +20,13 @@ public interface MigrationExecutor {
 	 * 원본에서 읽어 마스킹한 결과로 이관 대상에 테이블을 만듭니다.
 	 */
 	void createAndCopy(DbConnection raw, DbConnection edit, MigrationTarget target);
+
+	void createIndex(DbConnection edit, IndexDefinition index);
+
+	/** FK 는 참조 대상이 모두 적재된 뒤에 걸어야 합니다. 순서는 호출부가 지킵니다. */
+	void addConstraint(DbConnection edit, ConstraintDefinition constraint);
+
+	void applyComment(DbConnection edit, CommentDefinition comment);
+
+	void createSequence(DbConnection edit, SequenceDefinition sequence);
 }

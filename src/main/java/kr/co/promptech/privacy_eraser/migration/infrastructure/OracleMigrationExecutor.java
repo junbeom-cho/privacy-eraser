@@ -1,6 +1,11 @@
 package kr.co.promptech.privacy_eraser.migration.infrastructure;
 
+import kr.co.promptech.privacy_eraser.migration.domain.CommentDefinition;
+import kr.co.promptech.privacy_eraser.migration.domain.ConstraintDefinition;
+import kr.co.promptech.privacy_eraser.migration.domain.ConstraintType;
+import kr.co.promptech.privacy_eraser.migration.domain.IndexDefinition;
 import kr.co.promptech.privacy_eraser.migration.domain.MigrationExecutor;
+import kr.co.promptech.privacy_eraser.migration.domain.SequenceDefinition;
 import kr.co.promptech.privacy_eraser.migration.domain.MigrationTarget;
 import kr.co.promptech.privacy_eraser.project.domain.DbConnection;
 import org.springframework.stereotype.Component;
@@ -53,6 +58,58 @@ public class OracleMigrationExecutor implements MigrationExecutor {
 				selectList,
 				schema(raw), OracleMaskExpression.quote(target.tableName()));
 		execute(edit, sql);
+	}
+
+	@Override
+	public void createIndex(DbConnection edit, IndexDefinition index) {
+		execute(edit, "CREATE %sINDEX %s.%s ON %s.%s (%s)".formatted(
+				index.unique() ? "UNIQUE " : "",
+				schema(edit), OracleMaskExpression.quote(index.name()),
+				schema(edit), OracleMaskExpression.quote(index.tableName()),
+				columnList(index.columns())));
+	}
+
+	@Override
+	public void addConstraint(DbConnection edit, ConstraintDefinition constraint) {
+		execute(edit, "ALTER TABLE %s.%s ADD CONSTRAINT %s %s".formatted(
+				schema(edit), OracleMaskExpression.quote(constraint.tableName()),
+				OracleMaskExpression.quote(constraint.name()),
+				clauseOf(edit, constraint)));
+	}
+
+	private static String clauseOf(DbConnection edit, ConstraintDefinition constraint) {
+		return switch (constraint.type()) {
+			case PRIMARY_KEY -> "PRIMARY KEY (%s)".formatted(columnList(constraint.columns()));
+			case UNIQUE -> "UNIQUE (%s)".formatted(columnList(constraint.columns()));
+			case CHECK -> "CHECK (%s)".formatted(constraint.checkExpression());
+			// 참조 대상도 이관 대상 스키마 안의 테이블입니다. 원본을 가리키면 안 됩니다.
+			case FOREIGN_KEY -> "FOREIGN KEY (%s) REFERENCES %s.%s (%s)%s".formatted(
+					columnList(constraint.columns()),
+					schema(edit), OracleMaskExpression.quote(constraint.referencedTable()),
+					columnList(constraint.referencedColumns()),
+					"CASCADE".equalsIgnoreCase(constraint.deleteRule()) ? " ON DELETE CASCADE" : "");
+		};
+	}
+
+	@Override
+	public void applyComment(DbConnection edit, CommentDefinition comment) {
+		String target = comment.isTableComment()
+				? "TABLE %s.%s".formatted(schema(edit), OracleMaskExpression.quote(comment.tableName()))
+				: "COLUMN %s.%s.%s".formatted(schema(edit), OracleMaskExpression.quote(comment.tableName()),
+						OracleMaskExpression.quote(comment.columnName()));
+		// 코멘트 본문은 사용자 데이터가 아니라 스키마 설명입니다. 따옴표만 이스케이프합니다.
+		execute(edit, "COMMENT ON %s IS '%s'".formatted(target, comment.comment().replace("'", "''")));
+	}
+
+	@Override
+	public void createSequence(DbConnection edit, SequenceDefinition sequence) {
+		execute(edit, "CREATE SEQUENCE %s.%s START WITH %d INCREMENT BY %d".formatted(
+				schema(edit), OracleMaskExpression.quote(sequence.name()),
+				Math.max(sequence.startWith(), 1), sequence.incrementBy()));
+	}
+
+	private static String columnList(java.util.List<String> columns) {
+		return columns.stream().map(OracleMaskExpression::quote).collect(Collectors.joining(", "));
 	}
 
 	private static String schema(DbConnection connection) {

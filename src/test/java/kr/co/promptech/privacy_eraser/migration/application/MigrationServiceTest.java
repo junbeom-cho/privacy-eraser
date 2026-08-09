@@ -2,7 +2,13 @@ package kr.co.promptech.privacy_eraser.migration.application;
 
 import kr.co.promptech.privacy_eraser.keyword.domain.MaskingDirection;
 import kr.co.promptech.privacy_eraser.keyword.domain.MaskingPolicy;
+import kr.co.promptech.privacy_eraser.migration.domain.CommentDefinition;
+import kr.co.promptech.privacy_eraser.migration.domain.ConstraintDefinition;
+import kr.co.promptech.privacy_eraser.migration.domain.ConstraintType;
+import kr.co.promptech.privacy_eraser.migration.domain.IndexDefinition;
 import kr.co.promptech.privacy_eraser.migration.domain.MigrationExecutor;
+import kr.co.promptech.privacy_eraser.migration.domain.SequenceDefinition;
+import kr.co.promptech.privacy_eraser.migration.domain.SourceObjectReader;
 import kr.co.promptech.privacy_eraser.migration.domain.MigrationRun;
 import kr.co.promptech.privacy_eraser.migration.domain.MigrationRunRepository;
 import kr.co.promptech.privacy_eraser.migration.domain.MigrationStatus;
@@ -39,6 +45,7 @@ class MigrationServiceTest {
 	private FakeRunRepository runs;
 	private RecordingExecutor executor;
 	private ReviewService reviewService;
+	private FakeSourceObjectReader source;
 	private MigrationService service;
 
 	@BeforeEach
@@ -46,6 +53,7 @@ class MigrationServiceTest {
 		projects = new FakeProjectRepository();
 		runs = new FakeRunRepository();
 		executor = new RecordingExecutor();
+		source = new FakeSourceObjectReader();
 		reviewService = Mockito.mock(ReviewService.class);
 		projects.saved.add(new Project(1L, "프로젝트", RAW, EDIT));
 		given(reviewService.review(1L)).willReturn(List.of(
@@ -53,7 +61,7 @@ class MigrationServiceTest {
 				review("EMPLOYEES", "PHONE_NUMBER", 뒤_4자리),
 				review("DEPARTMENTS", "DEPARTMENT_ID", null)));
 		// 테스트에서는 같은 스레드에서 돌려 결과를 바로 확인합니다.
-		service = new MigrationService(projects, runs, executor, reviewService, Runnable::run);
+		service = new MigrationService(projects, runs, executor, reviewService, source, Runnable::run);
 	}
 
 	private static ColumnReview review(String table, String column, MaskingPolicy policy) {
@@ -133,6 +141,46 @@ class MigrationServiceTest {
 	}
 
 	@Test
+	void 인덱스와_제약조건을_적재_뒤에_만들고_FK_는_맨_마지막이다() {
+		source.constraints = List.of(
+				new ConstraintDefinition("EMPLOYEES", "EMP_FK", ConstraintType.FOREIGN_KEY,
+						List.of("DEPARTMENT_ID"), null, "DEPARTMENTS", List.of("DEPARTMENT_ID"), "NO ACTION"),
+				new ConstraintDefinition("EMPLOYEES", "EMP_PK", ConstraintType.PRIMARY_KEY,
+						List.of("EMPLOYEE_ID"), null, null, null, null));
+
+		service.start(1L);
+
+		assertThat(executor.applied).containsExactly(
+				"INDEX EMP_NAME_IX", "PRIMARY_KEY EMP_PK", "FOREIGN_KEY EMP_FK",
+				"COMMENT EMPLOYEES", "SEQUENCE EMP_SEQ");
+	}
+
+	@Test
+	void 마스킹된_컬럼에_UNIQUE_가_걸려_있으면_시작하지_않는다() {
+		source.constraints = List.of(new ConstraintDefinition("EMPLOYEES", "EMP_EMAIL_UK", ConstraintType.UNIQUE,
+				List.of("PHONE_NUMBER"), null, null, null, null));
+
+		assertThatThrownBy(() -> service.start(1L))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("EMP_EMAIL_UK");
+		// 시작 전에 막았으므로 아무것도 옮기지 않습니다.
+		assertThat(executor.created).isEmpty();
+	}
+
+	@Test
+	void 제약조건_하나가_실패하면_전체가_실패다() {
+		source.constraints = List.of(new ConstraintDefinition("EMPLOYEES", "EMP_PK", ConstraintType.PRIMARY_KEY,
+				List.of("EMPLOYEE_ID"), null, null, null, null));
+		executor.failOn = "EMP_PK";
+
+		Long runId = service.start(1L);
+
+		MigrationRun run = runs.findById(runId).orElseThrow();
+		assertThat(run.getStatus()).isEqualTo(MigrationStatus.FAILED);
+		assertThat(run.getMessage()).contains("ORA-02299");
+	}
+
+	@Test
 	void 없는_프로젝트는_실행할_수_없다() {
 		assertThatThrownBy(() -> service.start(999L)).isInstanceOf(ProjectNotFoundException.class);
 	}
@@ -148,6 +196,7 @@ class MigrationServiceTest {
 	private static class RecordingExecutor implements MigrationExecutor {
 		private final List<String> dropped = new ArrayList<>();
 		private final List<MigrationTarget> created = new ArrayList<>();
+		private final List<String> applied = new ArrayList<>();
 		private String failOn;
 
 		@Override
@@ -161,6 +210,53 @@ class MigrationServiceTest {
 				throw new IllegalStateException("ORA-01031: insufficient privileges");
 			}
 			created.add(target);
+		}
+
+		@Override
+		public void createIndex(DbConnection edit, IndexDefinition index) {
+			applied.add("INDEX " + index.name());
+		}
+
+		@Override
+		public void addConstraint(DbConnection edit, ConstraintDefinition constraint) {
+			if (constraint.name().equals(failOn)) {
+				throw new IllegalStateException("ORA-02299: duplicate keys found");
+			}
+			applied.add(constraint.type() + " " + constraint.name());
+		}
+
+		@Override
+		public void applyComment(DbConnection edit, CommentDefinition comment) {
+			applied.add("COMMENT " + comment.tableName());
+		}
+
+		@Override
+		public void createSequence(DbConnection edit, SequenceDefinition sequence) {
+			applied.add("SEQUENCE " + sequence.name());
+		}
+	}
+
+	private static class FakeSourceObjectReader implements SourceObjectReader {
+		private List<ConstraintDefinition> constraints = List.of();
+
+		@Override
+		public List<ConstraintDefinition> readConstraints(DbConnection raw) {
+			return constraints;
+		}
+
+		@Override
+		public List<IndexDefinition> readIndexes(DbConnection raw) {
+			return List.of(new IndexDefinition("EMPLOYEES", "EMP_NAME_IX", false, List.of("EMPLOYEE_ID")));
+		}
+
+		@Override
+		public List<CommentDefinition> readComments(DbConnection raw) {
+			return List.of(new CommentDefinition("EMPLOYEES", null, "직원"));
+		}
+
+		@Override
+		public List<SequenceDefinition> readSequences(DbConnection raw) {
+			return List.of(new SequenceDefinition("EMP_SEQ", 1, 1));
 		}
 	}
 
