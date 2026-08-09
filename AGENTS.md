@@ -49,6 +49,10 @@ npm --prefix frontend run build   # src/main/resources/static 으로 빌드 → 
 | `domain` | 엔티티·값객체·불변식, 포트 인터페이스 | Spring/MyBatis/JDBC import 금지 |
 | `application` | 유스케이스 조립, `@Transactional`, Command | SQL·HTTP 관심사 금지 |
 | `infrastructure` | 포트 구현(매퍼·JDBC·암복호화) | 도메인 규칙 판정 금지 |
+
+의존 방향이 바깥에서 안쪽으로만 향합니다(포트는 `domain`, 구현은 `infrastructure`).
+리포지토리 구현은 `{도메인}RepositoryImpl` 로 씁니다. `MyBatisXxx` 처럼 기술명을 붙이지 않습니다 —
+구현이 하나뿐이라 구분해 주는 것이 없고, 기술을 바꾸면 이름부터 거짓말이 됩니다.
 | `ui` | 컨트롤러, 요청/응답 DTO, 예외→상태코드 | 비즈니스 로직 금지 |
 
 - **엔티티는 클래스, 값 객체는 record 입니다.**
