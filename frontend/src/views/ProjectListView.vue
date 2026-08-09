@@ -105,15 +105,6 @@ onMounted(load)
                 <span v-else class="text-body-secondary small">미지정</span>
               </td>
               <td class="text-end">
-                <RouterLink :to="`/projects/${project.id}/schema`" class="btn btn-sm btn-outline-primary me-1">
-                  스키마
-                </RouterLink>
-                <RouterLink :to="`/projects/${project.id}/keywords`" class="btn btn-sm btn-outline-primary me-1">
-                  키워드
-                </RouterLink>
-                <RouterLink :to="`/projects/${project.id}`" class="btn btn-sm btn-outline-secondary me-1">
-                  수정
-                </RouterLink>
                 <button type="button" class="btn btn-sm btn-outline-danger" @click="target = project">
                   삭제
                 </button>

@@ -16,9 +16,9 @@ async function submit() {
   saving.value = true
   error.value = ''
   try {
-    await createProject(name.value, rawConnection)
-    // 저장에 성공하면 목록으로 돌아가고, 목록에서 결과를 알립니다.
-    router.push({ name: 'project-list', query: { message: `'${name.value}' 프로젝트를 생성했습니다.` } })
+    const created = await createProject(name.value, rawConnection)
+    // 만들자마자 다음 단계로 이어집니다. 목록으로 돌려보내면 흐름이 끊깁니다.
+    router.push(`/projects/${created.id}/schema`)
   } catch (e) {
     error.value = e instanceof Error ? e.message : '프로젝트 생성에 실패했습니다.'
   } finally {

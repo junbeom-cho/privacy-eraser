@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, inject, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import { messageOf } from '@/api/http'
-import { getProject, type ProjectView } from '@/api/projects'
 import {
   createKeyword,
   deleteKeyword,
@@ -17,8 +16,8 @@ import {
 
 const route = useRoute()
 const projectId = Number(route.params.id)
+const reloadWorkspace = inject<() => Promise<void>>('reloadWorkspace')
 
-const project = ref<ProjectView | null>(null)
 const keywords = ref<KeywordView[]>([])
 const loading = ref(true)
 const error = ref('')
@@ -39,7 +38,6 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    project.value = await getProject(projectId)
     keywords.value = await listKeywords(projectId)
   } catch (e) {
     error.value = messageOf(e, '키워드를 불러오지 못했습니다.')
@@ -77,6 +75,7 @@ async function submit() {
     }
     resetForm()
     keywords.value = await listKeywords(projectId)
+    await reloadWorkspace?.()
   } catch (e) {
     error.value = messageOf(e, '저장하지 못했습니다.')
   } finally {
@@ -93,6 +92,7 @@ async function confirmDelete() {
     if (editingId.value === target.value.id) resetForm()
     target.value = null
     keywords.value = await listKeywords(projectId)
+    await reloadWorkspace?.()
   } catch (e) {
     error.value = messageOf(e, '삭제하지 못했습니다.')
     target.value = null
@@ -105,13 +105,8 @@ onMounted(load)
 </script>
 
 <template>
-  <main class="container py-4" style="max-width: 52rem">
-    <RouterLink to="/" class="link-secondary small text-decoration-none">← 목록</RouterLink>
-
-    <h1 class="h4 mt-2 mb-1">키워드 · 정책</h1>
-    <p v-if="project" class="text-body-secondary small mb-4">
-      {{ project.name }} · <span class="font-mono">{{ project.rawConnection.schema }}</span>
-    </p>
+  <div>
+    <h2 class="h6 mb-3">3. 키워드 · 정책</h2>
 
     <div class="alert alert-secondary small">
       컬럼명을 <code>_</code> 로 나눈 토큰이 키워드와 맞으면 마스킹 대상이 됩니다. 대소문자는 구분하지 않습니다.
@@ -239,5 +234,5 @@ onMounted(load)
         <strong class="font-mono">{{ target.word }}</strong> 키워드를 삭제합니다.
       </p>
     </ConfirmModal>
-  </main>
+  </div>
 </template>

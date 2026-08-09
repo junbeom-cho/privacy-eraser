@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { inject, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import DbConnectionFields from '@/components/DbConnectionFields.vue'
+import { messageOf } from '@/api/http'
 import { emptyConnection, getProject, toInput, updateProject } from '@/api/projects'
 
 const route = useRoute()
 const router = useRouter()
-const id = Number(route.params.id)
+const projectId = Number(route.params.id)
+const reloadWorkspace = inject<() => Promise<void>>('reloadWorkspace')
 
 const name = ref('')
 const rawConnection = reactive(emptyConnection())
@@ -14,16 +16,17 @@ const editConnection = reactive(emptyConnection())
 
 const loading = ref(true)
 const saving = ref(false)
+const saved = ref(false)
 const error = ref('')
 
 onMounted(async () => {
   try {
-    const project = await getProject(id)
+    const project = await getProject(projectId)
     name.value = project.name
     Object.assign(rawConnection, toInput(project.rawConnection))
     Object.assign(editConnection, toInput(project.editConnection))
   } catch (e) {
-    error.value = e instanceof Error ? e.message : '프로젝트를 불러오지 못했습니다.'
+    error.value = messageOf(e, '프로젝트를 불러오지 못했습니다.')
   } finally {
     loading.value = false
   }
@@ -31,14 +34,16 @@ onMounted(async () => {
 
 async function submit() {
   saving.value = true
+  saved.value = false
   error.value = ''
   try {
     // 스키마가 비어 있으면 이관 대상을 아직 정하지 않은 것으로 봅니다.
     const edit = editConnection.schema.trim() ? editConnection : null
-    await updateProject(id, name.value, rawConnection, edit)
-    router.push({ name: 'project-list', query: { message: `'${name.value}' 프로젝트를 저장했습니다.` } })
+    await updateProject(projectId, name.value, rawConnection, edit)
+    saved.value = true
+    await reloadWorkspace?.()
   } catch (e) {
-    error.value = e instanceof Error ? e.message : '저장하지 못했습니다.'
+    error.value = messageOf(e, '저장하지 못했습니다.')
   } finally {
     saving.value = false
   }
@@ -46,16 +51,16 @@ async function submit() {
 </script>
 
 <template>
-  <main class="container py-4" style="max-width: 46rem">
-    <RouterLink to="/" class="link-secondary small text-decoration-none">← 목록</RouterLink>
-    <h1 class="h4 mt-2 mb-4">프로젝트 수정</h1>
+  <div>
+    <h2 class="h6 mb-3">1. 설정</h2>
 
+    <div v-if="saved" class="alert alert-success alert-dismissible" role="status">
+      저장했습니다.
+      <button type="button" class="btn-close" aria-label="닫기" @click="saved = false"></button>
+    </div>
     <div v-if="error" class="alert alert-danger" role="alert">{{ error }}</div>
 
-    <div v-if="loading" class="text-body-secondary small">
-      <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
-      불러오는 중
-    </div>
+    <div v-if="loading" class="text-body-secondary small">불러오는 중</div>
 
     <form v-else class="vstack gap-3" @submit.prevent="submit">
       <div>
@@ -84,8 +89,14 @@ async function submit() {
           <span v-if="saving" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
           {{ saving ? '저장 중' : '저장' }}
         </button>
-        <RouterLink to="/" class="btn btn-outline-secondary">취소</RouterLink>
+        <button
+          type="button"
+          class="btn btn-outline-primary ms-auto"
+          @click="router.push(`/projects/${projectId}/schema`)"
+        >
+          다음 단계 · 스키마 →
+        </button>
       </div>
     </form>
-  </main>
+  </div>
 </template>

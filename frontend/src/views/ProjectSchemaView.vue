@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { getProject, listTables, type ProjectView, type TableView } from '@/api/projects'
+import { listTables, type TableView } from '@/api/projects'
 
 const route = useRoute()
 const id = Number(route.params.id)
 
-const project = ref<ProjectView | null>(null)
 const tables = ref<TableView[]>([])
 const loading = ref(true)
 const error = ref('')
@@ -28,7 +27,6 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    project.value = await getProject(id)
     tables.value = await listTables(id)
   } catch (e) {
     error.value = e instanceof Error ? e.message : '원본 스키마를 읽지 못했습니다.'
@@ -41,17 +39,15 @@ onMounted(load)
 </script>
 
 <template>
-  <main class="container py-4" style="max-width: 56rem">
-    <RouterLink to="/" class="link-secondary small text-decoration-none">← 목록</RouterLink>
-
-    <div class="d-flex align-items-center justify-content-between mt-2 mb-1">
-      <h1 class="h4 mb-0">원본 스키마</h1>
+  <div>
+    <div class="d-flex align-items-center justify-content-between mb-1">
+      <h2 class="h6 mb-0">2. 스키마</h2>
       <button type="button" class="btn btn-sm btn-outline-secondary" :disabled="loading" @click="load">
         다시 읽기
       </button>
     </div>
-    <p v-if="project" class="text-body-secondary small mb-4">
-      {{ project.name }} · <span class="font-mono">{{ project.rawConnection.schema }}</span>
+    <p class="text-body-secondary small mb-4">
+      원본에서 실시간으로 읽습니다. 저장하지 않습니다.
       <span v-if="tables.length"> · 테이블 {{ tables.length }}개, 컬럼 {{ totalColumns }}개</span>
     </p>
 
@@ -120,9 +116,14 @@ onMounted(load)
         </div>
       </div>
 
-      <p class="text-body-secondary small mt-3 mb-0">
-        토큰은 컬럼명을 <code>_</code> 로 나눈 것입니다. 키워드를 이 토큰과 대조해 마스킹 대상을 정합니다.
-      </p>
+      <div class="d-flex align-items-center mt-3">
+        <p class="text-body-secondary small mb-0">
+          토큰은 컬럼명을 <code>_</code> 로 나눈 것입니다. 키워드를 이 토큰과 대조해 마스킹 대상을 정합니다.
+        </p>
+        <RouterLink :to="`/projects/${id}/keywords`" class="btn btn-outline-primary ms-auto text-nowrap">
+          다음 단계 · 키워드 →
+        </RouterLink>
+      </div>
     </template>
-  </main>
+  </div>
 </template>
