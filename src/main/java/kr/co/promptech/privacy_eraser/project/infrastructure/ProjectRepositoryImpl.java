@@ -8,12 +8,12 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public class MyBatisProjectRepository implements ProjectRepository {
+public class ProjectRepositoryImpl implements ProjectRepository {
 
 	private final ProjectMapper projectMapper;
 	private final CredentialCipher credentialCipher;
 
-	public MyBatisProjectRepository(ProjectMapper projectMapper, CredentialCipher credentialCipher) {
+	public ProjectRepositoryImpl(ProjectMapper projectMapper, CredentialCipher credentialCipher) {
 		this.projectMapper = projectMapper;
 		this.credentialCipher = credentialCipher;
 	}
