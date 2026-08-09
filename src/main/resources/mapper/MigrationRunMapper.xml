@@ -50,6 +50,32 @@
 		)
 	</insert>
 
+	<resultMap id="statRow" type="kr.co.promptech.privacy_eraser.migration.domain.ColumnMaskingStat">
+		<constructor>
+			<arg column="table_name" javaType="java.lang.String"/>
+			<arg column="column_name" javaType="java.lang.String"/>
+			<!-- record 컴포넌트가 원시형이라 _long 으로 맞춥니다. long 은 java.lang.Long 입니다. -->
+			<arg column="total_rows" javaType="_long"/>
+			<arg column="fully_masked_rows" javaType="_long"/>
+		</constructor>
+	</resultMap>
+
+	<insert id="insertStats">
+		INSERT INTO migration_column_stat (stat_id, run_id, table_name, column_name, total_rows, fully_masked_rows)
+		VALUES
+		<foreach item="stat" collection="stats" separator=",">
+			(nextval('migration_column_stat_seq'), #{runId}, #{stat.tableName}, #{stat.columnName},
+			 #{stat.totalRows}, #{stat.fullyMaskedRows})
+		</foreach>
+	</insert>
+
+	<select id="findStats" resultMap="statRow">
+		SELECT table_name, column_name, total_rows, fully_masked_rows
+		  FROM migration_column_stat
+		 WHERE run_id = #{runId}
+		 ORDER BY fully_masked_rows DESC, table_name, column_name
+	</select>
+
 	<update id="update">
 		UPDATE migration_run SET
 			status           = #{run.status},

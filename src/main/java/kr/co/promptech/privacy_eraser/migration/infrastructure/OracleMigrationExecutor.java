@@ -101,11 +101,22 @@ public class OracleMigrationExecutor implements MigrationExecutor {
 		execute(edit, "COMMENT ON %s IS '%s'".formatted(target, comment.comment().replace("'", "''")));
 	}
 
+	/**
+	 * 시퀀스는 테이블에 딸린 객체가 아니라 따로 남습니다. 테이블을 지워도 시퀀스는 그대로라
+	 * 먼저 지우지 않으면 재이관할 때마다 ORA-00955 로 실패합니다.
+	 */
 	@Override
 	public void createSequence(DbConnection edit, SequenceDefinition sequence) {
-		execute(edit, "CREATE SEQUENCE %s.%s START WITH %d INCREMENT BY %d".formatted(
-				schema(edit), OracleMaskExpression.quote(sequence.name()),
-				Math.max(sequence.startWith(), 1), sequence.incrementBy()));
+		String name = "%s.%s".formatted(schema(edit), OracleMaskExpression.quote(sequence.name()));
+		// 없는 시퀀스를 지우면 ORA-02289 가 납니다. 첫 실행에서는 정상이므로 무시합니다.
+		execute(edit, """
+				BEGIN
+				  EXECUTE IMMEDIATE 'DROP SEQUENCE %s';
+				EXCEPTION WHEN OTHERS THEN
+				  IF SQLCODE != -2289 THEN RAISE; END IF;
+				END;""".formatted(name));
+		execute(edit, "CREATE SEQUENCE %s START WITH %d INCREMENT BY %d".formatted(
+				name, Math.max(sequence.startWith(), 1), sequence.incrementBy()));
 	}
 
 	private static String columnList(java.util.List<String> columns) {

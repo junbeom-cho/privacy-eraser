@@ -1,6 +1,7 @@
 package kr.co.promptech.privacy_eraser.migration.ui;
 
 import kr.co.promptech.privacy_eraser.migration.application.MigrationService;
+import kr.co.promptech.privacy_eraser.migration.domain.ColumnMaskingStat;
 import kr.co.promptech.privacy_eraser.migration.domain.MigrationRun;
 import kr.co.promptech.privacy_eraser.migration.domain.MigrationStatus;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @RequiredArgsConstructor
 @RestController
@@ -36,19 +38,25 @@ public class MigrationRestController {
 	 */
 	@GetMapping
 	public MigrationRunResponse latest(@PathVariable Long projectId) {
-		return migrationService.findLatest(projectId).map(MigrationRunResponse::from).orElse(null);
+		return migrationService.findLatest(projectId)
+				.map(run -> MigrationRunResponse.from(run, migrationService.findStats(run.getId())))
+				.orElse(null);
 	}
 
 	public record StartedResponse(Long runId) {
 	}
 
+	/**
+	 * @param stats 통째로 가려진 행이 있는 컬럼만 담깁니다. 없으면 빈 목록입니다.
+	 */
 	public record MigrationRunResponse(Long runId, MigrationStatus status, int totalTables, int completedTables,
-			String currentTable, String message, OffsetDateTime startedAt, OffsetDateTime finishedAt) {
+			String currentTable, String message, OffsetDateTime startedAt, OffsetDateTime finishedAt,
+			List<ColumnMaskingStat> stats) {
 
-		static MigrationRunResponse from(MigrationRun run) {
+		static MigrationRunResponse from(MigrationRun run, List<ColumnMaskingStat> stats) {
 			return new MigrationRunResponse(run.getId(), run.getStatus(), run.getTotalTables(),
 					run.getCompletedTables(), run.getCurrentTable(), run.getMessage(),
-					run.getStartedAt(), run.getFinishedAt());
+					run.getStartedAt(), run.getFinishedAt(), stats);
 		}
 	}
 }

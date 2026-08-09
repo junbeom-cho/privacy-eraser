@@ -3,7 +3,13 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import { messageOf } from '@/api/http'
-import { latestMigration, startMigration, STATUS_LABEL, type MigrationRunView } from '@/api/migration'
+import {
+  latestMigration,
+  startMigration,
+  STATUS_LABEL,
+  type ColumnMaskingStatView,
+  type MigrationRunView,
+} from '@/api/migration'
 
 const route = useRoute()
 const projectId = Number(route.params.id)
@@ -20,6 +26,10 @@ const percent = computed(() => {
   if (!run.value || run.value.totalTables === 0) return 0
   return Math.round((run.value.completedTables / run.value.totalTables) * 100)
 })
+
+/** 0건은 통계로 남기지 않으므로 여기서 0으로 나눌 일은 없지만, 방어해둡니다. */
+const ratio = (stat: ColumnMaskingStatView) =>
+  stat.totalRows === 0 ? 0 : Math.round((stat.fullyMaskedRows / stat.totalRows) * 100)
 
 async function load() {
   try {
@@ -101,6 +111,50 @@ onUnmounted(() => window.clearTimeout(timer))
 
       <div v-else class="card mb-3">
         <div class="card-body text-body-secondary small">아직 이관한 적이 없습니다.</div>
+      </div>
+
+      <!--
+        검수 화면의 경고는 표본 1행 기준이라, 표본이 긴 값이면 경고가 뜨지 않습니다.
+        실제로 몇 건이 통째로 가려졌는지는 옮기고 나서 전수를 세야 알 수 있습니다.
+      -->
+      <div v-if="run?.status === 'SUCCEEDED'" class="card mb-3">
+        <div class="card-header fw-semibold">이관 후 통계</div>
+
+        <div v-if="run.stats.length === 0" class="card-body text-body-secondary small">
+          통째로 가려진 행이 없습니다. 모든 마스킹 값에 원본 일부가 남아 있습니다.
+        </div>
+
+        <template v-else>
+          <div class="card-body pb-0 small text-body-secondary">
+            정책 길이가 값 길이보다 길어 <strong>값 전체가 <code>*</code> 로만 남은</strong> 행입니다.
+            식별은 막았지만 그 컬럼으로는 아무것도 구분할 수 없게 됩니다.
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0 small">
+              <thead>
+                <tr class="text-body-secondary">
+                  <th scope="col">컬럼</th>
+                  <th scope="col" class="text-end">전체 마스킹</th>
+                  <th scope="col" class="text-end">전체</th>
+                  <th scope="col" style="width: 8rem">비율</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="stat in run.stats" :key="`${stat.tableName}.${stat.columnName}`">
+                  <td class="font-mono">{{ stat.tableName }}.{{ stat.columnName }}</td>
+                  <td class="text-end font-mono text-warning">{{ stat.fullyMaskedRows.toLocaleString() }}</td>
+                  <td class="text-end font-mono text-body-secondary">{{ stat.totalRows.toLocaleString() }}</td>
+                  <td>
+                    <div class="progress" style="height: 0.4rem" role="progressbar">
+                      <div class="progress-bar bg-warning" :style="{ width: `${ratio(stat)}%` }"></div>
+                    </div>
+                    <span class="text-body-secondary font-mono">{{ ratio(stat) }}%</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </template>
       </div>
 
       <button

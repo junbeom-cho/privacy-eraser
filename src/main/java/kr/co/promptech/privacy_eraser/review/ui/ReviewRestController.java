@@ -7,6 +7,7 @@ import kr.co.promptech.privacy_eraser.review.application.ReviewService;
 import kr.co.promptech.privacy_eraser.review.application.SaveOverrideCommand;
 import kr.co.promptech.privacy_eraser.review.domain.ColumnReview;
 import kr.co.promptech.privacy_eraser.review.domain.DecisionSource;
+import kr.co.promptech.privacy_eraser.schema.domain.ColumnKey;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Set;
 
 @RequiredArgsConstructor
 @RestController
@@ -84,7 +86,8 @@ public class ReviewRestController {
 	 * 로그·캐시에 남기지 않습니다.
 	 */
 	public record ColumnReviewResponse(String tableName, String columnName, String type, boolean nullable,
-			List<String> tokens, boolean masked, MaskingDirection direction, Integer length,
+			List<String> tokens, Set<ColumnKey> keys, boolean uniqueConflict,
+			boolean masked, MaskingDirection direction, Integer length,
 			DecisionSource source, String matchedKeyword, boolean policyExceedsLength,
 			String sample, String maskedSample, boolean sampleFullyMasked) {
 
@@ -96,6 +99,9 @@ public class ReviewRestController {
 					review.column().displayType(),
 					review.column().nullable(),
 					review.column().tokens(),
+					review.column().keys(),
+					// 마스킹하면 값이 겹쳐 이관을 시작할 수 없습니다. 여기서 먼저 알려줍니다.
+					review.column().requiresUniqueValues() && review.decision().masked(),
 					review.decision().masked(),
 					policy == null ? null : policy.direction(),
 					policy == null ? null : policy.length(),

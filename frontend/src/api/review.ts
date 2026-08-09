@@ -1,4 +1,5 @@
 import { request } from './http'
+import type { ColumnKey } from './projects'
 import type { MaskingDirection } from './keywords'
 
 export type DecisionSource = 'USER' | 'UNDO_KEYWORD' | 'DO_KEYWORD' | 'NO_MATCH'
@@ -9,6 +10,9 @@ export interface ColumnReviewView {
   type: string
   nullable: boolean
   tokens: string[]
+  keys: ColumnKey[]
+  /** 마스킹 대상인데 PK·UNIQUE 입니다. 이대로면 이관을 시작할 수 없습니다. */
+  uniqueConflict: boolean
   masked: boolean
   direction: MaskingDirection | null
   length: number | null

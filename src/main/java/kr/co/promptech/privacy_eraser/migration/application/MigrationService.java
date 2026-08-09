@@ -1,5 +1,6 @@
 package kr.co.promptech.privacy_eraser.migration.application;
 
+import kr.co.promptech.privacy_eraser.migration.domain.ColumnMaskingStat;
 import kr.co.promptech.privacy_eraser.migration.domain.ConstraintDefinition;
 import kr.co.promptech.privacy_eraser.migration.domain.ConstraintType;
 import kr.co.promptech.privacy_eraser.migration.domain.MaskingConflicts;
@@ -87,6 +88,30 @@ public class MigrationService {
 		return runRepository.findById(runId);
 	}
 
+	/** 이관 후 통계입니다. 실행이 끝나야 값이 있습니다. */
+	public List<ColumnMaskingStat> findStats(Long runId) {
+		return runRepository.findStats(runId);
+	}
+
+	/**
+	 * 마스킹 컬럼마다 몇 건이 통째로 가려졌는지 셉니다. 알릴 것이 있는 컬럼만 남깁니다.
+	 * <p>
+	 * 실패해도 이관은 성공입니다. 데이터는 이미 다 옮겨졌고, 이건 보고서일 뿐입니다.
+	 */
+	private void collectStats(Long runId, Project project, List<MigrationTarget> targets) {
+		try {
+			List<ColumnMaskingStat> stats = targets.stream()
+					.filter(target -> target.columns().stream().anyMatch(column -> column.policy() != null))
+					.flatMap(target -> sourceObjectReader.countMasking(project.getRawConnection(), target).stream())
+					.filter(ColumnMaskingStat::worthReporting)
+					.toList();
+			runRepository.saveStats(runId, stats);
+		}
+		catch (RuntimeException e) {
+			log.warn("이관 후 통계를 만들지 못했습니다. runId={}", runId, e);
+		}
+	}
+
 	/**
 	 * 검수 결과를 테이블 단위로 묶습니다. 원본의 모든 테이블이 대상이며,
 	 * 마스킹 대상이 없는 테이블도 그대로 복사합니다.
@@ -145,6 +170,7 @@ public class MigrationService {
 			applyObjects(project, constraints);
 
 			run.succeeded(OffsetDateTime.now());
+			collectStats(runId, project, targets);
 		}
 		catch (RuntimeException e) {
 			log.error("이관에 실패했습니다. runId={}", runId, e);

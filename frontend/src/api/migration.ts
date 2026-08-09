@@ -2,6 +2,14 @@ import { request } from './http'
 
 export type MigrationStatus = 'RUNNING' | 'SUCCEEDED' | 'FAILED'
 
+/** 마스킹 컬럼 하나의 결과. 표본 1행으로는 알 수 없는 전수 집계입니다. */
+export interface ColumnMaskingStatView {
+  tableName: string
+  columnName: string
+  totalRows: number
+  fullyMaskedRows: number
+}
+
 export interface MigrationRunView {
   runId: number
   status: MigrationStatus
@@ -11,6 +19,7 @@ export interface MigrationRunView {
   message: string | null
   startedAt: string
   finishedAt: string | null
+  stats: ColumnMaskingStatView[]
 }
 
 export const STATUS_LABEL: Record<MigrationStatus, string> = {

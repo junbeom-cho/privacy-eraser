@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { listTables, type TableView } from '@/api/projects'
+import { KEY_BADGE, listTables, type TableView } from '@/api/projects'
 
 const route = useRoute()
 const id = Number(route.params.id)
@@ -90,6 +90,7 @@ onMounted(load)
               <thead>
                 <tr class="small text-body-secondary">
                   <th scope="col">컬럼</th>
+                  <th scope="col">키</th>
                   <th scope="col">타입</th>
                   <th scope="col">NULL</th>
                   <th scope="col">토큰</th>
@@ -98,6 +99,15 @@ onMounted(load)
               <tbody>
                 <tr v-for="column in table.columns" :key="column.name">
                   <td class="font-mono">{{ column.name }}</td>
+                  <td>
+                    <span
+                      v-for="key in column.keys"
+                      :key="key"
+                      class="badge me-1 fw-normal"
+                      :class="KEY_BADGE[key].className"
+                      :title="KEY_BADGE[key].title"
+                    >{{ KEY_BADGE[key].label }}</span>
+                  </td>
                   <td class="font-mono small text-body-secondary">{{ column.type }}</td>
                   <td class="small text-body-secondary">{{ column.nullable ? '허용' : '—' }}</td>
                   <td>
@@ -119,6 +129,7 @@ onMounted(load)
       <div class="d-flex align-items-center mt-3">
         <p class="text-body-secondary small mb-0">
           토큰은 컬럼명을 <code>_</code> 로 나눈 것입니다. 키워드를 이 토큰과 대조해 마스킹 대상을 정합니다.
+          <strong>PK·UQ</strong> 컬럼은 값이 겹치면 안 되므로 마스킹할 수 없습니다.
         </p>
         <RouterLink :to="`/projects/${id}/keywords`" class="btn btn-outline-primary ms-auto text-nowrap">
           다음 단계 · 키워드 →

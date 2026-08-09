@@ -1,5 +1,6 @@
 package kr.co.promptech.privacy_eraser.migration.domain;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface MigrationRunRepository {
@@ -14,4 +15,8 @@ public interface MigrationRunRepository {
 	Optional<MigrationRun> findLatestByProjectId(Long projectId);
 
 	boolean existsRunningByProjectId(Long projectId);
+
+	void saveStats(Long runId, List<ColumnMaskingStat> stats);
+
+	List<ColumnMaskingStat> findStats(Long runId);
 }

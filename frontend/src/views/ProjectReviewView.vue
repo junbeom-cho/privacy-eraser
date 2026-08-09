@@ -2,7 +2,7 @@
 import { computed, inject, onMounted, ref, type Ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { messageOf } from '@/api/http'
-import type { ProjectView } from '@/api/projects'
+import { KEY_BADGE, type ProjectView } from '@/api/projects'
 import { DIRECTION_LABEL, type MaskingDirection } from '@/api/keywords'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import {
@@ -32,6 +32,8 @@ const revertingAll = ref(false)
 const maskedCount = computed(() => rows.value.filter((r) => r.masked).length)
 const overriddenCount = computed(() => rows.value.filter((r) => r.source === 'USER').length)
 const warningCount = computed(() => rows.value.filter((r) => r.policyExceedsLength).length)
+/** PK·UNIQUE 를 마스킹하면 값이 겹쳐 이관 자체가 시작되지 않습니다. */
+const conflicts = computed(() => rows.value.filter((r) => r.uniqueConflict))
 
 /** 테이블 단위로 묶어서 보여줍니다. */
 const tables = computed(() => {
@@ -134,6 +136,17 @@ onMounted(load)
 
     <div v-if="error" class="alert alert-danger" role="alert">{{ error }}</div>
 
+    <!-- 이관 시작할 때도 막지만, 여기서 알아야 고칠 수 있습니다. -->
+    <div v-if="conflicts.length" class="alert alert-danger" role="alert">
+      <p class="mb-1">
+        <strong>값이 겹치면 안 되는 컬럼을 마스킹했습니다.</strong>
+        마스킹하면 값이 중복되어 PK·고유키를 걸 수 없으므로 이관을 시작할 수 없습니다.
+      </p>
+      <p class="mb-0 small font-mono">
+        <span v-for="row in conflicts" :key="keyOf(row)" class="me-2">{{ keyOf(row) }}</span>
+      </p>
+    </div>
+
     <div v-if="loading" class="text-body-secondary small">
       <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
       원본을 읽고 판정하는 중
@@ -174,6 +187,13 @@ onMounted(load)
               <tr v-for="row in table.columns" :key="keyOf(row)" :class="{ 'opacity-50': savingKey === keyOf(row) }">
                 <td class="font-mono">
                   {{ row.columnName }}
+                  <span
+                    v-for="key in row.keys"
+                    :key="key"
+                    class="badge ms-1 fw-normal"
+                    :class="KEY_BADGE[key].className"
+                    :title="KEY_BADGE[key].title"
+                  >{{ KEY_BADGE[key].label }}</span>
                   <span
                     v-if="row.policyExceedsLength"
                     class="badge text-bg-warning ms-1 fw-normal"
@@ -269,8 +289,11 @@ onMounted(load)
         <p class="text-body-secondary small mb-0">
           여기서 확정한 대로 이관합니다. 마스킹 대상 {{ maskedCount }}개 컬럼.
         </p>
+        <span v-if="conflicts.length" class="btn btn-outline-danger ms-auto text-nowrap disabled" aria-disabled="true">
+          충돌 {{ conflicts.length }}건을 먼저 해결하세요
+        </span>
         <RouterLink
-          v-if="canMigrate"
+          v-else-if="canMigrate"
           :to="`/projects/${projectId}/migration`"
           class="btn btn-outline-primary ms-auto text-nowrap"
         >

@@ -3,6 +3,7 @@ package kr.co.promptech.privacy_eraser.schema.ui;
 import lombok.RequiredArgsConstructor;
 import kr.co.promptech.privacy_eraser.project.domain.ProjectNotFoundException;
 import kr.co.promptech.privacy_eraser.schema.application.SchemaService;
+import kr.co.promptech.privacy_eraser.schema.domain.ColumnKey;
 import kr.co.promptech.privacy_eraser.schema.domain.ColumnMetadata;
 import kr.co.promptech.privacy_eraser.schema.domain.TableMetadata;
 import org.springframework.http.HttpStatus;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Set;
 
 @RequiredArgsConstructor
 @RestController
@@ -27,10 +29,12 @@ public class SchemaRestController {
 		return schemaService.readTables(projectId).stream().map(TableResponse::from).toList();
 	}
 
-	public record ColumnResponse(String name, String type, boolean nullable, List<String> tokens) {
+	public record ColumnResponse(String name, String type, boolean nullable, List<String> tokens,
+			Set<ColumnKey> keys) {
 
 		static ColumnResponse from(ColumnMetadata column) {
-			return new ColumnResponse(column.name(), column.displayType(), column.nullable(), column.tokens());
+			return new ColumnResponse(column.name(), column.displayType(), column.nullable(),
+					column.tokens(), column.keys());
 		}
 	}
 

@@ -2,6 +2,8 @@ package kr.co.promptech.privacy_eraser.schema.domain;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Set;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -85,5 +87,46 @@ class ColumnMetadataTest {
 	void 문자형만_최대_길이를_안다() {
 		assertThat(ColumnMetadata.character("EMAIL", "VARCHAR2", 25, true).maxLength()).isEqualTo(25);
 		assertThat(ColumnMetadata.plain("HIRE_DATE", "DATE", false).maxLength()).isNull();
+	}
+
+	@Test
+	void 키가_없으면_빈_집합이다() {
+		assertThat(ColumnMetadata.character("NAME", "VARCHAR2", 50, true).keys()).isEmpty();
+	}
+
+	@Test
+	void PK_와_UNIQUE_는_값이_겹치면_안_되는_컬럼이다() {
+		ColumnMetadata pk = ColumnMetadata.number("ID", 10, 0, false).withKeys(Set.of(ColumnKey.PRIMARY_KEY));
+		ColumnMetadata unique = ColumnMetadata.character("EMAIL", "VARCHAR2", 25, false)
+				.withKeys(Set.of(ColumnKey.UNIQUE));
+
+		assertThat(pk.requiresUniqueValues()).isTrue();
+		assertThat(unique.requiresUniqueValues()).isTrue();
+	}
+
+	@Test
+	void FK_는_값이_겹쳐도_되므로_마스킹_충돌_대상이_아니다() {
+		ColumnMetadata fk = ColumnMetadata.number("DEPT_ID", 4, 0, true).withKeys(Set.of(ColumnKey.FOREIGN_KEY));
+
+		assertThat(fk.keys()).containsExactly(ColumnKey.FOREIGN_KEY);
+		assertThat(fk.requiresUniqueValues()).isFalse();
+	}
+
+	@Test
+	void 한_컬럼에_키가_여럿_걸릴_수_있다() {
+		ColumnMetadata both = ColumnMetadata.number("DEPT_ID", 4, 0, false)
+				.withKeys(Set.of(ColumnKey.PRIMARY_KEY, ColumnKey.FOREIGN_KEY));
+
+		assertThat(both.keys()).containsExactlyInAnyOrder(ColumnKey.PRIMARY_KEY, ColumnKey.FOREIGN_KEY);
+		assertThat(both.requiresUniqueValues()).isTrue();
+	}
+
+	@Test
+	void 키를_붙여도_나머지_정보는_그대로다() {
+		ColumnMetadata column = ColumnMetadata.character("EMAIL", "VARCHAR2", 25, false)
+				.withKeys(Set.of(ColumnKey.UNIQUE));
+
+		assertThat(column.displayType()).isEqualTo("VARCHAR2(25)");
+		assertThat(column.nullable()).isFalse();
 	}
 }

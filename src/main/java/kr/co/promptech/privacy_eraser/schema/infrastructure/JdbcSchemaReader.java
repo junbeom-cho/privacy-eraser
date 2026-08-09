@@ -1,6 +1,7 @@
 package kr.co.promptech.privacy_eraser.schema.infrastructure;
 
 import kr.co.promptech.privacy_eraser.project.domain.DbConnection;
+import kr.co.promptech.privacy_eraser.schema.domain.ColumnKey;
 import kr.co.promptech.privacy_eraser.schema.domain.ColumnMetadata;
 import kr.co.promptech.privacy_eraser.schema.domain.SchemaReader;
 import kr.co.promptech.privacy_eraser.schema.domain.TableMetadata;
@@ -12,10 +13,13 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 @Component
 public class JdbcSchemaReader implements SchemaReader {
@@ -42,6 +46,22 @@ public class JdbcSchemaReader implements SchemaReader {
 			 ORDER BY t.table_name, c.column_id
 			""";
 
+	/**
+	 * 컬럼에 걸린 키입니다. 한 컬럼이 PK 이면서 FK 일 수 있어 여러 줄이 나옵니다.
+	 * CHECK 는 값이 겹치는 것과 무관해 보지 않습니다.
+	 */
+	private static final String KEYS = """
+			SELECT cc.table_name,
+			       cc.column_name,
+			       con.constraint_type
+			  FROM all_cons_columns cc
+			  JOIN all_constraints con
+			    ON con.owner = cc.owner
+			   AND con.constraint_name = cc.constraint_name
+			 WHERE cc.owner = ?
+			   AND con.constraint_type IN ('P', 'U', 'R')
+			""";
+
 	@Override
 	public List<TableMetadata> readTables(DbConnection target) {
 		Properties properties = new Properties();
@@ -49,12 +69,15 @@ public class JdbcSchemaReader implements SchemaReader {
 		properties.setProperty("password", target.password());
 		DriverManager.setLoginTimeout(TIMEOUT_SECONDS);
 
-		try (Connection connection = DriverManager.getConnection(target.url(), properties);
-				PreparedStatement statement = connection.prepareStatement(SQL)) {
-			statement.setString(1, target.schema());
-			statement.setQueryTimeout(TIMEOUT_SECONDS);
-			try (ResultSet resultSet = statement.executeQuery()) {
-				return toTables(resultSet);
+		try (Connection connection = DriverManager.getConnection(target.url(), properties)) {
+			// 같은 접속에서 두 번 읽고 합칩니다. 컬럼마다 상관 서브쿼리를 걸면 컬럼 수만큼 조회합니다.
+			Map<String, Set<ColumnKey>> keys = readKeys(connection, target.schema());
+			try (PreparedStatement statement = connection.prepareStatement(SQL)) {
+				statement.setString(1, target.schema());
+				statement.setQueryTimeout(TIMEOUT_SECONDS);
+				try (ResultSet resultSet = statement.executeQuery()) {
+					return toTables(resultSet, keys);
+				}
 			}
 		}
 		catch (SQLException e) {
@@ -63,12 +86,44 @@ public class JdbcSchemaReader implements SchemaReader {
 		}
 	}
 
-	private static List<TableMetadata> toTables(ResultSet resultSet) throws SQLException {
+	private static Map<String, Set<ColumnKey>> readKeys(Connection connection, String schema) throws SQLException {
+		Map<String, Set<ColumnKey>> keys = new HashMap<>();
+		try (PreparedStatement statement = connection.prepareStatement(KEYS)) {
+			statement.setString(1, schema);
+			statement.setQueryTimeout(TIMEOUT_SECONDS);
+			try (ResultSet resultSet = statement.executeQuery()) {
+				while (resultSet.next()) {
+					keys.computeIfAbsent(
+							keyOf(resultSet.getString("table_name"), resultSet.getString("column_name")),
+							name -> EnumSet.noneOf(ColumnKey.class))
+							.add(toColumnKey(resultSet.getString("constraint_type")));
+				}
+			}
+		}
+		return keys;
+	}
+
+	static String keyOf(String tableName, String columnName) {
+		return tableName + "." + columnName;
+	}
+
+	static ColumnKey toColumnKey(String constraintType) {
+		return switch (constraintType) {
+			case "P" -> ColumnKey.PRIMARY_KEY;
+			case "U" -> ColumnKey.UNIQUE;
+			default -> ColumnKey.FOREIGN_KEY;
+		};
+	}
+
+	private static List<TableMetadata> toTables(ResultSet resultSet, Map<String, Set<ColumnKey>> keys)
+			throws SQLException {
 		// 테이블명 순으로 정렬해 읽으므로 입력 순서를 유지합니다.
 		Map<String, List<ColumnMetadata>> byTable = new LinkedHashMap<>();
 		while (resultSet.next()) {
-			byTable.computeIfAbsent(resultSet.getString("table_name"), name -> new ArrayList<>())
-					.add(toColumn(resultSet));
+			String tableName = resultSet.getString("table_name");
+			ColumnMetadata column = toColumn(resultSet);
+			byTable.computeIfAbsent(tableName, name -> new ArrayList<>())
+					.add(column.withKeys(keys.getOrDefault(keyOf(tableName, column.name()), Set.of())));
 		}
 		return byTable.entrySet().stream()
 				.map(entry -> new TableMetadata(entry.getKey(), entry.getValue()))

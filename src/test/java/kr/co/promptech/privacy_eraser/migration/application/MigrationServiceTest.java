@@ -2,6 +2,7 @@ package kr.co.promptech.privacy_eraser.migration.application;
 
 import kr.co.promptech.privacy_eraser.keyword.domain.MaskingDirection;
 import kr.co.promptech.privacy_eraser.keyword.domain.MaskingPolicy;
+import kr.co.promptech.privacy_eraser.migration.domain.ColumnMaskingStat;
 import kr.co.promptech.privacy_eraser.migration.domain.CommentDefinition;
 import kr.co.promptech.privacy_eraser.migration.domain.ConstraintDefinition;
 import kr.co.promptech.privacy_eraser.migration.domain.ConstraintType;
@@ -181,6 +182,45 @@ class MigrationServiceTest {
 	}
 
 	@Test
+	void 마스킹_컬럼마다_통째로_가려진_행수를_남긴다() {
+		// 표본 1행으로는 알 수 없는 값이라 전수를 셉니다.
+		source.fullyMasked = 46;
+
+		Long runId = service.start(1L);
+
+		assertThat(runs.stats.get(runId)).containsExactly(
+				new ColumnMaskingStat("EMPLOYEES", "PHONE_NUMBER", 107, 46));
+	}
+
+	@Test
+	void 통째로_가려진_행이_없으면_통계로_남기지_않는다() {
+		source.fullyMasked = 0;
+
+		Long runId = service.start(1L);
+
+		assertThat(runs.stats.get(runId)).isEmpty();
+	}
+
+	@Test
+	void 통계_집계가_실패해도_이관은_성공이다() {
+		// 데이터는 이미 다 옮겨졌습니다. 보고서를 못 만들었다고 실패로 되돌리면 사용자만 헷갈립니다.
+		source.countFails = true;
+
+		Long runId = service.start(1L);
+
+		assertThat(runs.findById(runId).orElseThrow().getStatus()).isEqualTo(MigrationStatus.SUCCEEDED);
+	}
+
+	@Test
+	void 실패한_실행은_통계를_남기지_않는다() {
+		executor.failOn = "DEPARTMENTS";
+
+		Long runId = service.start(1L);
+
+		assertThat(runs.stats).doesNotContainKey(runId);
+	}
+
+	@Test
 	void 없는_프로젝트는_실행할_수_없다() {
 		assertThatThrownBy(() -> service.start(999L)).isInstanceOf(ProjectNotFoundException.class);
 	}
@@ -238,6 +278,18 @@ class MigrationServiceTest {
 
 	private static class FakeSourceObjectReader implements SourceObjectReader {
 		private List<ConstraintDefinition> constraints = List.of();
+		private long fullyMasked;
+		private boolean countFails;
+
+		@Override
+		public List<ColumnMaskingStat> countMasking(DbConnection raw, MigrationTarget target) {
+			if (countFails) {
+				throw new IllegalStateException("ORA-00942: table or view does not exist");
+			}
+			return target.columns().stream().filter(column -> column.policy() != null)
+					.map(column -> new ColumnMaskingStat(target.tableName(), column.name(), 107, fullyMasked))
+					.toList();
+		}
 
 		@Override
 		public List<ConstraintDefinition> readConstraints(DbConnection raw) {
@@ -262,7 +314,18 @@ class MigrationServiceTest {
 
 	private static class FakeRunRepository implements MigrationRunRepository {
 		private final List<MigrationRun> saved = new ArrayList<>();
+		private final java.util.Map<Long, List<ColumnMaskingStat>> stats = new java.util.HashMap<>();
 		private final AtomicLong sequence = new AtomicLong();
+
+		@Override
+		public void saveStats(Long runId, List<ColumnMaskingStat> columnStats) {
+			stats.put(runId, columnStats);
+		}
+
+		@Override
+		public List<ColumnMaskingStat> findStats(Long runId) {
+			return stats.getOrDefault(runId, List.of());
+		}
 
 		@Override
 		public Long save(MigrationRun run) {

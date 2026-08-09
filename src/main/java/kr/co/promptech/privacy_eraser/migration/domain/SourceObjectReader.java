@@ -19,4 +19,13 @@ public interface SourceObjectReader {
 	List<CommentDefinition> readComments(DbConnection raw);
 
 	List<SequenceDefinition> readSequences(DbConnection raw);
+
+	/**
+	 * 이 테이블의 마스킹 컬럼마다 전체 행수와 통째로 가려지는 행수를 셉니다.
+	 * <p>
+	 * 검수 화면의 경고는 표본 <b>1행</b> 기준이라, 표본이 긴 값이면 경고가 뜨지 않습니다.
+	 * 실제로 몇 건이 가려졌는지는 전수를 세야 알 수 있습니다.
+	 * 마스킹 컬럼이 없으면 빈 목록입니다.
+	 */
+	List<ColumnMaskingStat> countMasking(DbConnection raw, MigrationTarget target);
 }

@@ -1,9 +1,11 @@
 package kr.co.promptech.privacy_eraser.migration.infrastructure;
 
+import kr.co.promptech.privacy_eraser.migration.domain.ColumnMaskingStat;
 import kr.co.promptech.privacy_eraser.migration.domain.CommentDefinition;
 import kr.co.promptech.privacy_eraser.migration.domain.ConstraintDefinition;
 import kr.co.promptech.privacy_eraser.migration.domain.ConstraintType;
 import kr.co.promptech.privacy_eraser.migration.domain.IndexDefinition;
+import kr.co.promptech.privacy_eraser.migration.domain.MigrationTarget;
 import kr.co.promptech.privacy_eraser.migration.domain.SequenceDefinition;
 import kr.co.promptech.privacy_eraser.migration.domain.SourceObjectReader;
 import kr.co.promptech.privacy_eraser.project.domain.DbConnection;
@@ -30,6 +32,9 @@ import java.util.Properties;
 public class OracleSourceObjectReader implements SourceObjectReader {
 
 	private static final int TIMEOUT_SECONDS = 30;
+
+	/** 전수 집계는 테이블을 통째로 훑습니다. 메타데이터 조회와 같은 시간을 줄 수 없습니다. */
+	private static final int SCAN_TIMEOUT_SECONDS = 600;
 
 	/**
 	 * NOT NULL 은 Oracle 이 CHECK 로 저장하지만 테이블을 만들 때 이미 따라오므로 제외합니다.
@@ -130,6 +135,41 @@ public class OracleSourceObjectReader implements SourceObjectReader {
 				resultSet.getLong("increment_by")));
 	}
 
+	/**
+	 * 마스킹 방향은 셀 때 상관없습니다. 앞이든 뒤든 값 길이가 정책 길이 이하면 통째로 가려집니다.
+	 * <p>
+	 * 컬럼마다 따로 세면 테이블을 그만큼 여러 번 훑습니다. 한 문장에 몰아 한 번만 읽습니다.
+	 * NULL 은 마스킹해도 NULL 이라 세지 않습니다.
+	 */
+	@Override
+	public List<ColumnMaskingStat> countMasking(DbConnection raw, MigrationTarget target) {
+		List<MigrationTarget.Column> masked = target.columns().stream()
+				.filter(column -> column.policy() != null)
+				.toList();
+		if (masked.isEmpty()) {
+			return List.of();
+		}
+
+		StringBuilder sql = new StringBuilder("SELECT COUNT(*) AS total_rows");
+		for (int i = 0; i < masked.size(); i++) {
+			sql.append(",\n       COUNT(CASE WHEN LENGTH(TO_CHAR(%s)) <= %d THEN 1 END) AS c%d".formatted(
+					OracleMaskExpression.quote(masked.get(i).name()), masked.get(i).policy().length(), i));
+		}
+		sql.append("\n  FROM %s.%s".formatted(
+				OracleMaskExpression.quote(raw.schema().toUpperCase(Locale.ROOT)),
+				OracleMaskExpression.quote(target.tableName())));
+
+		return query(raw, sql.toString(), 0, resultSet -> {
+			long total = resultSet.getLong("total_rows");
+			List<ColumnMaskingStat> stats = new ArrayList<>();
+			for (int i = 0; i < masked.size(); i++) {
+				stats.add(new ColumnMaskingStat(target.tableName(), masked.get(i).name(),
+						total, resultSet.getLong("c" + i)));
+			}
+			return stats;
+		}).stream().flatMap(List::stream).toList();
+	}
+
 	private static ConstraintType toType(String code) {
 		return switch (code) {
 			case "P" -> ConstraintType.PRIMARY_KEY;
@@ -158,7 +198,7 @@ public class OracleSourceObjectReader implements SourceObjectReader {
 
 		try (Connection connection = DriverManager.getConnection(raw.url(), properties);
 				PreparedStatement statement = connection.prepareStatement(sql)) {
-			statement.setQueryTimeout(TIMEOUT_SECONDS);
+			statement.setQueryTimeout(schemaParameterCount == 0 ? SCAN_TIMEOUT_SECONDS : TIMEOUT_SECONDS);
 			for (int i = 1; i <= schemaParameterCount; i++) {
 				statement.setString(i, raw.schema().toUpperCase(Locale.ROOT));
 			}

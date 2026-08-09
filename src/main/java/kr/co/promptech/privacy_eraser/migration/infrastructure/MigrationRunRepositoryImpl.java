@@ -1,10 +1,12 @@
 package kr.co.promptech.privacy_eraser.migration.infrastructure;
 
+import kr.co.promptech.privacy_eraser.migration.domain.ColumnMaskingStat;
 import kr.co.promptech.privacy_eraser.migration.domain.MigrationRun;
 import kr.co.promptech.privacy_eraser.migration.domain.MigrationRunRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @RequiredArgsConstructor
@@ -39,5 +41,17 @@ public class MigrationRunRepositoryImpl implements MigrationRunRepository {
 	@Override
 	public boolean existsRunningByProjectId(Long projectId) {
 		return migrationRunMapper.existsRunningByProjectId(projectId);
+	}
+
+	@Override
+	public void saveStats(Long runId, List<ColumnMaskingStat> stats) {
+		if (!stats.isEmpty()) {
+			migrationRunMapper.insertStats(runId, stats);
+		}
+	}
+
+	@Override
+	public List<ColumnMaskingStat> findStats(Long runId) {
+		return migrationRunMapper.findStats(runId);
 	}
 }

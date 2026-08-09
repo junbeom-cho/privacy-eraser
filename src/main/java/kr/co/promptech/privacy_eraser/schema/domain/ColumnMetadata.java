@@ -3,6 +3,7 @@ package kr.co.promptech.privacy_eraser.schema.domain;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * 원본 컬럼 한 개의 메타데이터입니다.
@@ -14,9 +15,10 @@ import java.util.Locale;
  * @param charLength 문자형의 글자 수. 문자형이 아니면 null
  * @param precision  숫자형의 전체 자릿수. 숫자형이 아니거나 지정되지 않았으면 null
  * @param scale      숫자형의 소수 자릿수. 숫자형이 아니면 null
+ * @param keys       이 컬럼에 걸린 키. 없으면 빈 집합
  */
 public record ColumnMetadata(String name, String dataType, Integer charLength,
-		Integer precision, Integer scale, boolean nullable) {
+		Integer precision, Integer scale, boolean nullable, Set<ColumnKey> keys) {
 
 	public ColumnMetadata {
 		if (name == null || name.isBlank()) {
@@ -26,19 +28,32 @@ public record ColumnMetadata(String name, String dataType, Integer charLength,
 			throw new IllegalArgumentException("데이터 타입은 비워둘 수 없습니다.");
 		}
 		name = name.strip();
+		keys = keys == null ? Set.of() : Set.copyOf(keys);
+	}
+
+	/** 키 정보는 컬럼 목록과 따로 읽으므로 나중에 붙입니다. */
+	public ColumnMetadata withKeys(Set<ColumnKey> keys) {
+		return new ColumnMetadata(name, dataType, charLength, precision, scale, nullable, keys);
+	}
+
+	/**
+	 * 값이 서로 달라야 하는 컬럼입니다. 마스킹하면 값이 겹쳐 이관할 때 제약조건을 걸 수 없습니다.
+	 */
+	public boolean requiresUniqueValues() {
+		return keys.contains(ColumnKey.PRIMARY_KEY) || keys.contains(ColumnKey.UNIQUE);
 	}
 
 	public static ColumnMetadata character(String name, String dataType, int charLength, boolean nullable) {
-		return new ColumnMetadata(name, dataType, charLength, null, null, nullable);
+		return new ColumnMetadata(name, dataType, charLength, null, null, nullable, Set.of());
 	}
 
 	public static ColumnMetadata number(String name, Integer precision, Integer scale, boolean nullable) {
-		return new ColumnMetadata(name, "NUMBER", null, precision, scale, nullable);
+		return new ColumnMetadata(name, "NUMBER", null, precision, scale, nullable, Set.of());
 	}
 
 	/** 날짜·LOB 처럼 길이를 붙이지 않는 타입입니다. */
 	public static ColumnMetadata plain(String name, String dataType, boolean nullable) {
-		return new ColumnMetadata(name, dataType, null, null, null, nullable);
+		return new ColumnMetadata(name, dataType, null, null, null, nullable, Set.of());
 	}
 
 	/**

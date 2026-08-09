@@ -76,12 +76,34 @@ export function deleteProject(id: number) {
   return request<void>('DELETE', `/api/projects/${id}`)
 }
 
+export type ColumnKey = 'PRIMARY_KEY' | 'UNIQUE' | 'FOREIGN_KEY'
+
+/** PK·UNIQUE 컬럼을 마스킹하면 값이 겹쳐 이관할 때 제약조건을 걸 수 없습니다. */
+export const KEY_BADGE: Record<ColumnKey, { label: string; className: string; title: string }> = {
+  PRIMARY_KEY: {
+    label: 'PK',
+    className: 'text-bg-primary',
+    title: '기본키입니다. 마스킹하면 값이 겹쳐 이관할 수 없습니다.',
+  },
+  UNIQUE: {
+    label: 'UQ',
+    className: 'text-bg-secondary',
+    title: '고유키입니다. 마스킹하면 값이 겹쳐 이관할 수 없습니다.',
+  },
+  FOREIGN_KEY: {
+    label: 'FK',
+    className: 'text-bg-light border',
+    title: '외래키입니다. 값이 겹쳐도 됩니다.',
+  },
+}
+
 export interface ColumnView {
   name: string
   type: string
   nullable: boolean
   /** 컬럼명을 `_` 로 나눈 토큰. 키워드는 이것과 대조합니다. */
   tokens: string[]
+  keys: ColumnKey[]
 }
 
 export interface TableView {
