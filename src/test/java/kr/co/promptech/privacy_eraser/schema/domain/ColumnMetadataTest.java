@@ -37,6 +37,16 @@ class ColumnMetadataTest {
 	void 컬럼명이_비어있으면_만들_수_없다() {
 		assertThatThrownBy(() -> varchar(" "))
 				.isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> varchar(null))
+				.isInstanceOf(IllegalArgumentException.class);
+	}
+
+	@Test
+	void 데이터_타입이_비어있으면_만들_수_없다() {
+		assertThatThrownBy(() -> ColumnMetadata.character("EMAIL", " ", 25, true))
+				.isInstanceOf(IllegalArgumentException.class);
+		assertThatThrownBy(() -> ColumnMetadata.plain("EMAIL", null, true))
+				.isInstanceOf(IllegalArgumentException.class);
 	}
 
 	// ===== 타입 표기 =====

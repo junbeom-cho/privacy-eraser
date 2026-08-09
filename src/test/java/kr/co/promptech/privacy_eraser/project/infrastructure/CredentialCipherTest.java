@@ -42,6 +42,31 @@ class CredentialCipherTest {
 	}
 
 	@Test
+	void 암호문이_잘리면_복호화할_수_없다() {
+		String encrypted = cipher.encrypt("oracle-password");
+
+		assertThatThrownBy(() -> cipher.decrypt(encrypted.substring(0, encrypted.length() / 2)))
+				.isInstanceOf(IllegalStateException.class);
+	}
+
+	@Test
+	void 암호문이_변조되면_복호화할_수_없다() {
+		// AES-GCM 은 인증 태그가 있어 한 글자만 바뀌어도 걸러집니다.
+		byte[] payload = java.util.Base64.getDecoder().decode(cipher.encrypt("oracle-password"));
+		payload[payload.length - 1] ^= 0x01;
+
+		assertThatThrownBy(() -> cipher.decrypt(java.util.Base64.getEncoder().encodeToString(payload)))
+				.isInstanceOf(IllegalStateException.class);
+	}
+
+	@Test
+	void 암호문이_너무_짧으면_복호화할_수_없다() {
+		assertThatThrownBy(() -> cipher.decrypt(java.util.Base64.getEncoder().encodeToString(new byte[4])))
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessageContaining("형식");
+	}
+
+	@Test
 	void 시크릿과_솔트가_같으면_다시_기동해도_같은_키를_얻는다() {
 		String encrypted = cipher.encrypt("oracle-password");
 

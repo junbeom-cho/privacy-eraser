@@ -59,6 +59,25 @@ class SchemaServiceTest {
 				.isInstanceOf(ProjectNotFoundException.class);
 	}
 
+	@Test
+	void 원본_DB_조회에_실패하면_사유를_그대로_전한다() {
+		// 접속 정보가 틀린 것이므로 삼키지 않고 올려보내야 사용자가 고칠 수 있습니다.
+		projects.saved.add(new Project(1L, "이름", RAW, null));
+		reader.failure = new IllegalStateException("ORA-01017: invalid credential");
+
+		assertThatThrownBy(() -> service.readTables(1L))
+				.isInstanceOf(IllegalStateException.class)
+				.hasMessageContaining("ORA-01017");
+	}
+
+	@Test
+	void 테이블이_하나도_없으면_빈_목록이다() {
+		projects.saved.add(new Project(1L, "이름", RAW, null));
+		reader.tables = List.of();
+
+		assertThat(service.readTables(1L)).isEmpty();
+	}
+
 	private static class FakeProjectRepository implements ProjectRepository {
 		private final List<Project> saved = new ArrayList<>();
 
@@ -95,11 +114,15 @@ class SchemaServiceTest {
 
 	private static class FakeSchemaReader implements SchemaReader {
 		private List<TableMetadata> tables = List.of();
+		private RuntimeException failure;
 		private DbConnection used;
 
 		@Override
 		public List<TableMetadata> readTables(DbConnection connection) {
 			this.used = connection;
+			if (failure != null) {
+				throw failure;
+			}
 			return tables;
 		}
 	}
