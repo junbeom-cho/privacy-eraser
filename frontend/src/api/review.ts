@@ -36,16 +36,24 @@ export function listReview(projectId: number) {
   return request<ColumnReviewView[]>('GET', `/api/projects/${projectId}/review`)
 }
 
+/** 바뀐 줄을 돌려받습니다. 화면은 전체를 다시 부르지 않고 그 줄만 갈아끼웁니다. */
 export function overrideColumn(
   projectId: number,
   tableName: string,
   columnName: string,
   body: { masked: boolean; direction: MaskingDirection | null; length: number | null },
 ) {
-  return request<void>('PUT', `/api/projects/${projectId}/review/${tableName}/${columnName}`, body)
+  return request<ColumnReviewView>(
+    'PUT',
+    `/api/projects/${projectId}/review/${tableName}/${columnName}`,
+    body,
+  )
 }
 
-/** 사용자 지정을 지우면 다시 키워드 판정을 따릅니다. */
+/** 사용자 지정을 지우면 다시 키워드 판정을 따릅니다. 되돌린 줄을 돌려받습니다. */
 export function clearOverride(projectId: number, tableName: string, columnName: string) {
-  return request<void>('DELETE', `/api/projects/${projectId}/review/${tableName}/${columnName}`)
+  return request<ColumnReviewView>(
+    'DELETE',
+    `/api/projects/${projectId}/review/${tableName}/${columnName}`,
+  )
 }

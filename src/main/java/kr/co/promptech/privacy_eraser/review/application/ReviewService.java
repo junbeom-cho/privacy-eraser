@@ -58,10 +58,13 @@ public class ReviewService {
 		return rows;
 	}
 
+	/**
+	 * @return 바뀐 컬럼 한 줄. 화면이 전체를 다시 부르지 않고 이 줄만 갈아끼울 수 있게 돌려줍니다.
+	 */
 	@Transactional
-	public void override(Long projectId, SaveOverrideCommand command) {
+	public ColumnReview override(Long projectId, SaveOverrideCommand command) {
 		Project project = requireProject(projectId);
-		requireColumnExists(project, command.tableName(), command.columnName());
+		ColumnMetadata column = requireColumn(project, command.tableName(), command.columnName());
 
 		overrideRepository.findOne(projectId, command.tableName(), command.columnName())
 				.ifPresentOrElse(existing -> {
@@ -69,16 +72,38 @@ public class ReviewService {
 					overrideRepository.update(existing);
 				}, () -> overrideRepository.save(ColumnOverride.of(projectId, command.tableName(),
 						command.columnName(), command.masked(), command.policy())));
+
+		return reviewOne(project, command.tableName(), column);
 	}
 
 	/**
 	 * 사용자 지정을 지웁니다. 해당 컬럼은 다시 키워드 판정을 따릅니다.
+	 *
+	 * @return 되돌린 뒤의 컬럼 한 줄
 	 */
 	@Transactional
-	public void clearOverride(Long projectId, String tableName, String columnName) {
-		requireProject(projectId);
+	public ColumnReview clearOverride(Long projectId, String tableName, String columnName) {
+		Project project = requireProject(projectId);
+		ColumnMetadata column = requireColumn(project, tableName, columnName);
+
 		overrideRepository.findOne(projectId, tableName, columnName)
 				.ifPresent(override -> overrideRepository.deleteById(override.getId()));
+
+		return reviewOne(project, tableName, column);
+	}
+
+	/**
+	 * 컬럼 하나만 다시 판정합니다. 표본도 그 테이블 하나만 읽으므로 전체 조회보다 훨씬 쌉니다.
+	 */
+	private ColumnReview reviewOne(Project project, String tableName, ColumnMetadata column) {
+		KeywordJudge judge = new KeywordJudge(keywordRepository.findAllByProjectId(project.getId()));
+		MaskingDecision override = overrideRepository
+				.findOne(project.getId(), tableName, column.name())
+				.map(ColumnOverride::toDecision)
+				.orElse(null);
+		String sample = readSampleQuietly(project, tableName).get(column.name());
+		return new ColumnReview(tableName.strip().toUpperCase(Locale.ROOT), column,
+				judge.judgeWithOverride(column, override), sample);
 	}
 
 	/**
@@ -102,15 +127,14 @@ public class ReviewService {
 	/**
 	 * 원본에 없는 컬럼을 지정하면 이관할 때가 되어서야 드러납니다. 저장 시점에 막습니다.
 	 */
-	private void requireColumnExists(Project project, String tableName, String columnName) {
-		boolean exists = schemaReader.readTables(project.getRawConnection()).stream()
+	private ColumnMetadata requireColumn(Project project, String tableName, String columnName) {
+		return schemaReader.readTables(project.getRawConnection()).stream()
 				.filter(table -> table.name().equalsIgnoreCase(tableName.strip()))
 				.flatMap(table -> table.columns().stream())
-				.anyMatch(column -> column.name().equalsIgnoreCase(columnName.strip()));
-		if (!exists) {
-			throw new IllegalArgumentException(
-					"원본에서 %s.%s 컬럼을 찾을 수 없습니다.".formatted(tableName, columnName));
-		}
+				.filter(column -> column.name().equalsIgnoreCase(columnName.strip()))
+				.findFirst()
+				.orElseThrow(() -> new IllegalArgumentException(
+						"원본에서 %s.%s 컬럼을 찾을 수 없습니다.".formatted(tableName, columnName)));
 	}
 
 	private static String key(String tableName, String columnName) {

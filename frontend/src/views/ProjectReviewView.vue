@@ -49,19 +49,31 @@ async function load() {
   }
 }
 
+/**
+ * 서버가 돌려준 줄로 해당 행만 바꿉니다. 전체를 다시 부르면 원본 스키마와 표본을
+ * 테이블 수만큼 다시 읽게 되고, 화면도 깜빡이며 스크롤이 튑니다.
+ */
+function replaceRow(updated: ColumnReviewView) {
+  const index = rows.value.findIndex((r) => keyOf(r) === keyOf(updated))
+  if (index >= 0) rows.value[index] = updated
+}
+
 async function apply(row: ColumnReviewView, change: Partial<ColumnReviewView>) {
   const next = { ...row, ...change }
   savingKey.value = keyOf(row)
   error.value = ''
   try {
-    await overrideColumn(projectId, row.tableName, row.columnName, {
-      masked: next.masked,
-      direction: next.masked ? (next.direction ?? 'FROM_END') : null,
-      length: next.masked ? (next.length ?? 4) : null,
-    })
-    await load()
+    replaceRow(
+      await overrideColumn(projectId, row.tableName, row.columnName, {
+        masked: next.masked,
+        direction: next.masked ? (next.direction ?? 'FROM_END') : null,
+        length: next.masked ? (next.length ?? 4) : null,
+      }),
+    )
   } catch (e) {
     error.value = messageOf(e, '저장하지 못했습니다.')
+    // 실패하면 화면 값이 서버와 어긋나므로 그때만 다시 읽습니다.
+    await load()
   } finally {
     savingKey.value = null
   }
@@ -71,10 +83,10 @@ async function revert(row: ColumnReviewView) {
   savingKey.value = keyOf(row)
   error.value = ''
   try {
-    await clearOverride(projectId, row.tableName, row.columnName)
-    await load()
+    replaceRow(await clearOverride(projectId, row.tableName, row.columnName))
   } catch (e) {
     error.value = messageOf(e, '되돌리지 못했습니다.')
+    await load()
   } finally {
     savingKey.value = null
   }

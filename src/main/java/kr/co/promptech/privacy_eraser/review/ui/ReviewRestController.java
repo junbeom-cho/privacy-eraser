@@ -7,14 +7,12 @@ import kr.co.promptech.privacy_eraser.review.application.ReviewService;
 import kr.co.promptech.privacy_eraser.review.application.SaveOverrideCommand;
 import kr.co.promptech.privacy_eraser.review.domain.ColumnReview;
 import kr.co.promptech.privacy_eraser.review.domain.DecisionSource;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -33,22 +31,25 @@ public class ReviewRestController {
 
 	/**
 	 * 컬럼 하나를 사용자가 직접 정합니다. 이미 있으면 바꿉니다.
+	 *
+	 * @return 바뀐 줄. 화면이 전체를 다시 부르지 않고 이 줄만 갈아끼웁니다.
 	 */
 	@PutMapping("/{tableName}/{columnName}")
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void override(@PathVariable Long projectId, @PathVariable String tableName,
+	public ColumnReviewResponse override(@PathVariable Long projectId, @PathVariable String tableName,
 			@PathVariable String columnName, @RequestBody OverrideRequest request) {
-		reviewService.override(projectId, request.toCommand(tableName, columnName));
+		return ColumnReviewResponse.from(
+				reviewService.override(projectId, request.toCommand(tableName, columnName)));
 	}
 
 	/**
 	 * 사용자 지정을 지웁니다. 해당 컬럼은 다시 키워드 판정을 따릅니다.
+	 *
+	 * @return 되돌린 뒤의 줄
 	 */
 	@DeleteMapping("/{tableName}/{columnName}")
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	public void clearOverride(@PathVariable Long projectId, @PathVariable String tableName,
+	public ColumnReviewResponse clearOverride(@PathVariable Long projectId, @PathVariable String tableName,
 			@PathVariable String columnName) {
-		reviewService.clearOverride(projectId, tableName, columnName);
+		return ColumnReviewResponse.from(reviewService.clearOverride(projectId, tableName, columnName));
 	}
 
 	public record OverrideRequest(boolean masked, MaskingDirection direction, Integer length) {
