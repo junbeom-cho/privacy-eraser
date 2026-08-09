@@ -30,6 +30,16 @@ public class ReviewRestController {
 	}
 
 	/**
+	 * 사용자 지정을 모두 지웁니다. 전부 키워드 판정으로 돌아갑니다.
+	 *
+	 * @return 되돌린 뒤의 전체 목록
+	 */
+	@DeleteMapping
+	public List<ColumnReviewResponse> clearAllOverrides(@PathVariable Long projectId) {
+		return reviewService.clearAllOverrides(projectId).stream().map(ColumnReviewResponse::from).toList();
+	}
+
+	/**
 	 * 컬럼 하나를 사용자가 직접 정합니다. 이미 있으면 바꿉니다.
 	 *
 	 * @return 바뀐 줄. 화면이 전체를 다시 부르지 않고 이 줄만 갈아끼웁니다.

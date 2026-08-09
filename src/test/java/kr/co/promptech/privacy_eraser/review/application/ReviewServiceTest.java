@@ -185,6 +185,32 @@ class ReviewServiceTest {
 	}
 
 	@Test
+	void 전체_되돌리기는_지정을_모두_지우고_키워드_판정으로_되돌린다() {
+		keywords.saved.add(Keyword.skipFor(1L, "id"));
+		service.override(1L, new SaveOverrideCommand("EMPLOYEES", "EMPLOYEE_ID", true, 앞_1자리));
+		service.override(1L, new SaveOverrideCommand("EMPLOYEES", "SALARY", true, 뒤_4자리));
+
+		List<ColumnReview> after = service.clearAllOverrides(1L);
+
+		assertThat(overrides.saved).isEmpty();
+		assertThat(after).extracting(r -> r.decision().source()).doesNotContain(DecisionSource.USER);
+		assertThat(after).filteredOn(r -> r.column().name().equals("EMPLOYEE_ID"))
+				.singleElement()
+				.satisfies(r -> assertThat(r.decision().source()).isEqualTo(DecisionSource.UNDO_KEYWORD));
+	}
+
+	@Test
+	void 지정이_없어도_전체_되돌리기는_동작한다() {
+		assertThat(service.clearAllOverrides(1L)).hasSize(3);
+	}
+
+	@Test
+	void 없는_프로젝트는_전체_되돌리기도_예외다() {
+		assertThatThrownBy(() -> service.clearAllOverrides(999L))
+				.isInstanceOf(ProjectNotFoundException.class);
+	}
+
+	@Test
 	void 없는_지정을_지워도_조용히_넘어간다() {
 		service.clearOverride(1L, "EMPLOYEES", "SALARY");
 
@@ -212,6 +238,11 @@ class ReviewServiceTest {
 		@Override
 		public void deleteById(Long id) {
 			saved.removeIf(o -> o.getId().equals(id));
+		}
+
+		@Override
+		public void deleteAllByProjectId(Long projectId) {
+			saved.removeIf(o -> o.getProjectId().equals(projectId));
 		}
 
 		@Override

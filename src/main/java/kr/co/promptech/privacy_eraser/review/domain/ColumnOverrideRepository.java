@@ -11,6 +11,9 @@ public interface ColumnOverrideRepository {
 
 	void deleteById(Long id);
 
+	/** 프로젝트의 사용자 지정을 모두 지웁니다. */
+	void deleteAllByProjectId(Long projectId);
+
 	List<ColumnOverride> findAllByProjectId(Long projectId);
 
 	Optional<ColumnOverride> findOne(Long projectId, String tableName, String columnName);

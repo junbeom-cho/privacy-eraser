@@ -116,6 +116,17 @@ class ReviewRestControllerTest {
 	}
 
 	@Test
+	void 전체_되돌리기는_되돌린_전체_목록을_돌려준다() throws Exception {
+		given(reviewService.clearAllOverrides(1L)).willReturn(List.of(
+				new ColumnReview("EMPLOYEES", PHONE, MaskingDecision.notMasked(), "01012345678")));
+
+		mockMvc.perform(delete("/api/projects/1/review"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.length()").value(1))
+				.andExpect(jsonPath("$[0].source").value("NO_MATCH"));
+	}
+
+	@Test
 	void 마스킹하면서_정책이_빠지면_400이다() throws Exception {
 		mockMvc.perform(put("/api/projects/1/review/EMPLOYEES/PHONE_NUMBER")
 						.contentType(MediaType.APPLICATION_JSON)

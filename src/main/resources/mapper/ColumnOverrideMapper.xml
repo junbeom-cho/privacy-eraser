@@ -55,4 +55,8 @@
 		DELETE FROM column_override WHERE override_id = #{id}
 	</delete>
 
+	<delete id="deleteAllByProjectId">
+		DELETE FROM column_override WHERE project_id = #{projectId}
+	</delete>
+
 </mapper>

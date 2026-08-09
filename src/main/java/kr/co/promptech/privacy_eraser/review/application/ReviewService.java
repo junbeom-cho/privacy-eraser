@@ -93,6 +93,18 @@ public class ReviewService {
 	}
 
 	/**
+	 * 프로젝트의 사용자 지정을 모두 지웁니다. 전부 키워드 판정으로 돌아갑니다.
+	 *
+	 * @return 되돌린 뒤의 전체 목록. 바뀌는 줄이 많아 화면이 통째로 갈아끼웁니다.
+	 */
+	@Transactional
+	public List<ColumnReview> clearAllOverrides(Long projectId) {
+		requireProject(projectId);
+		overrideRepository.deleteAllByProjectId(projectId);
+		return review(projectId);
+	}
+
+	/**
 	 * 컬럼 하나만 다시 판정합니다. 표본도 그 테이블 하나만 읽으므로 전체 조회보다 훨씬 쌉니다.
 	 */
 	private ColumnReview reviewOne(Project project, String tableName, ColumnMetadata column) {

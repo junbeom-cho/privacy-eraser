@@ -33,6 +33,11 @@ public class ColumnOverrideRepositoryImpl implements ColumnOverrideRepository {
 	}
 
 	@Override
+	public void deleteAllByProjectId(Long projectId) {
+		columnOverrideMapper.deleteAllByProjectId(projectId);
+	}
+
+	@Override
 	public List<ColumnOverride> findAllByProjectId(Long projectId) {
 		return columnOverrideMapper.findAllByProjectId(projectId).stream()
 				.map(ColumnOverrideRow::toDomain).toList();

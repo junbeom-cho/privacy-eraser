@@ -50,6 +50,11 @@ export function overrideColumn(
   )
 }
 
+/** 사용자 지정을 모두 지웁니다. 바뀌는 줄이 많아 되돌린 전체 목록을 돌려받습니다. */
+export function clearAllOverrides(projectId: number) {
+  return request<ColumnReviewView[]>('DELETE', `/api/projects/${projectId}/review`)
+}
+
 /** 사용자 지정을 지우면 다시 키워드 판정을 따릅니다. 되돌린 줄을 돌려받습니다. */
 export function clearOverride(projectId: number, tableName: string, columnName: string) {
   return request<ColumnReviewView>(

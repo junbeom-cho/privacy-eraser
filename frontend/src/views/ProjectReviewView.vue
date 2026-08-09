@@ -3,7 +3,9 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { messageOf } from '@/api/http'
 import { DIRECTION_LABEL, type MaskingDirection } from '@/api/keywords'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 import {
+  clearAllOverrides,
   clearOverride,
   listReview,
   overrideColumn,
@@ -19,6 +21,8 @@ const loading = ref(true)
 const error = ref('')
 const savingKey = ref<string | null>(null)
 const onlyMasked = ref(false)
+const confirmingRevertAll = ref(false)
+const revertingAll = ref(false)
 
 const maskedCount = computed(() => rows.value.filter((r) => r.masked).length)
 const overriddenCount = computed(() => rows.value.filter((r) => r.source === 'USER').length)
@@ -92,6 +96,20 @@ async function revert(row: ColumnReviewView) {
   }
 }
 
+async function revertAll() {
+  revertingAll.value = true
+  error.value = ''
+  try {
+    rows.value = await clearAllOverrides(projectId)
+    confirmingRevertAll.value = false
+  } catch (e) {
+    error.value = messageOf(e, '되돌리지 못했습니다.')
+    confirmingRevertAll.value = false
+  } finally {
+    revertingAll.value = false
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -122,6 +140,15 @@ onMounted(load)
         <span class="text-primary">마스킹 <strong>{{ maskedCount }}</strong></span>
         <span class="text-body-secondary">직접 지정 <strong>{{ overriddenCount }}</strong></span>
         <span v-if="warningCount" class="text-warning">길이 초과 <strong>{{ warningCount }}</strong></span>
+
+        <button
+          v-if="overriddenCount > 0"
+          type="button"
+          class="btn btn-sm btn-outline-secondary ms-auto py-0"
+          @click="confirmingRevertAll = true"
+        >
+          전체 되돌리기
+        </button>
       </div>
 
       <div v-for="table in tables" :key="table.name" class="card mb-3">
@@ -233,5 +260,18 @@ onMounted(load)
         </div>
       </div>
     </template>
+    <ConfirmModal
+      v-if="confirmingRevertAll"
+      title="전체 되돌리기"
+      confirm-label="되돌리기"
+      :busy="revertingAll"
+      @confirm="revertAll"
+      @cancel="confirmingRevertAll = false"
+    >
+      <p class="mb-0">
+        직접 지정한 <strong>{{ overriddenCount }}개</strong> 컬럼을 모두 키워드 판정으로 되돌립니다.
+        되돌린 내용은 복구할 수 없습니다.
+      </p>
+    </ConfirmModal>
   </div>
 </template>

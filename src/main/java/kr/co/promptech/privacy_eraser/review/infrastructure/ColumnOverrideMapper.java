@@ -17,6 +17,8 @@ public interface ColumnOverrideMapper {
 
 	void deleteById(@Param("id") Long id);
 
+	void deleteAllByProjectId(@Param("projectId") Long projectId);
+
 	List<ColumnOverrideRow> findAllByProjectId(@Param("projectId") Long projectId);
 
 	ColumnOverrideRow findOne(@Param("projectId") Long projectId,
