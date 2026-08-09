@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.promptech.privacy_eraser.keyword.infrastructure.KeywordMapper">
+
+	<!-- KeywordRow 는 record 라 세터가 없습니다. 생성자 인자 순서대로 매핑합니다. -->
+	<resultMap id="keywordRow" type="kr.co.promptech.privacy_eraser.keyword.infrastructure.KeywordRow">
+		<constructor>
+			<idArg column="keyword_id" javaType="java.lang.Long"/>
+			<arg column="project_id" javaType="java.lang.Long"/>
+			<arg column="word" javaType="java.lang.String"/>
+			<arg column="keyword_type" javaType="java.lang.String"/>
+			<arg column="mask_direction" javaType="java.lang.String"/>
+			<arg column="mask_length" javaType="java.lang.Integer"/>
+		</constructor>
+	</resultMap>
+
+	<sql id="columns">
+		keyword_id, project_id, word, keyword_type, mask_direction, mask_length
+	</sql>
+
+	<select id="nextKeywordId" resultType="long">
+		SELECT nextval('keyword_seq')
+	</select>
+
+	<select id="findAllByProjectId" resultMap="keywordRow">
+		SELECT <include refid="columns"/> FROM keyword
+		 WHERE project_id = #{projectId}
+		 ORDER BY keyword_type, word
+	</select>
+
+	<select id="findById" resultMap="keywordRow">
+		SELECT <include refid="columns"/> FROM keyword WHERE keyword_id = #{id}
+	</select>
+
+	<insert id="insert">
+		INSERT INTO keyword (keyword_id, project_id, word, keyword_type, mask_direction, mask_length)
+		VALUES (
+			#{id}, #{keyword.projectId}, #{keyword.word}, #{keyword.type},
+			<!-- UNDO 는 정책이 없어 null 이 들어옵니다. jdbcType 이 없으면 드라이버가 타입을 몰라 실패합니다. -->
+			#{keyword.policy.direction,jdbcType=VARCHAR}, #{keyword.policy.length,jdbcType=INTEGER}
+		)
+	</insert>
+
+	<update id="update">
+		UPDATE keyword SET
+			word           = #{keyword.word},
+			keyword_type   = #{keyword.type},
+			mask_direction = #{keyword.policy.direction,jdbcType=VARCHAR},
+			mask_length    = #{keyword.policy.length,jdbcType=INTEGER}
+		WHERE keyword_id = #{keyword.id}
+	</update>
+
+	<delete id="deleteById">
+		DELETE FROM keyword WHERE keyword_id = #{id}
+	</delete>
+
+	<select id="existsByProjectIdAndWord" resultType="boolean">
+		SELECT EXISTS (SELECT 1 FROM keyword WHERE project_id = #{projectId} AND word = #{word})
+	</select>
+
+</mapper>
