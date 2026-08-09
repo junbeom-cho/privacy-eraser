@@ -35,6 +35,11 @@ const router = createRouter({
           component: () => import('@/views/ProjectKeywordsView.vue'),
         },
         {
+          path: 'migration',
+          name: 'project-migration',
+          component: () => import('@/views/ProjectMigrationView.vue'),
+        },
+        {
           path: 'review',
           name: 'project-review',
           component: () => import('@/views/ProjectReviewView.vue'),

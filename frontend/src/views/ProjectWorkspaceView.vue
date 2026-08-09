@@ -69,12 +69,10 @@ const steps = computed(() => [
   {
     no: 5,
     name: '이관',
-    to: '',
+    to: project.value?.editConnection ? `/projects/${projectId}/migration` : '',
     exact: false,
     badge: null,
-    blockedReason: !project.value?.editConnection
-      ? '이관 대상 접속 정보를 먼저 등록하세요'
-      : '준비 중입니다',
+    blockedReason: '이관 대상 접속 정보를 먼저 등록하세요',
   },
 ])
 

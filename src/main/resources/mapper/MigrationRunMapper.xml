@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.promptech.privacy_eraser.migration.infrastructure.MigrationRunMapper">
+
+	<resultMap id="runRow" type="kr.co.promptech.privacy_eraser.migration.infrastructure.MigrationRunRow">
+		<constructor>
+			<idArg column="run_id" javaType="java.lang.Long"/>
+			<arg column="project_id" javaType="java.lang.Long"/>
+			<arg column="status" javaType="java.lang.String"/>
+			<!-- record 컴포넌트가 원시형이라 _int 로 맞춥니다. int 는 java.lang.Integer 입니다. -->
+			<arg column="total_tables" javaType="_int"/>
+			<arg column="completed_tables" javaType="_int"/>
+			<arg column="current_table" javaType="java.lang.String"/>
+			<arg column="message" javaType="java.lang.String"/>
+			<arg column="started_at" javaType="java.time.OffsetDateTime"/>
+			<arg column="finished_at" javaType="java.time.OffsetDateTime"/>
+		</constructor>
+	</resultMap>
+
+	<sql id="columns">
+		run_id, project_id, status, total_tables, completed_tables, current_table, message, started_at, finished_at
+	</sql>
+
+	<select id="nextRunId" resultType="long">
+		SELECT nextval('migration_run_seq')
+	</select>
+
+	<select id="findById" resultMap="runRow">
+		SELECT <include refid="columns"/> FROM migration_run WHERE run_id = #{id}
+	</select>
+
+	<select id="findLatestByProjectId" resultMap="runRow">
+		SELECT <include refid="columns"/> FROM migration_run
+		 WHERE project_id = #{projectId}
+		 ORDER BY started_at DESC, run_id DESC
+		 LIMIT 1
+	</select>
+
+	<select id="existsRunningByProjectId" resultType="boolean">
+		SELECT EXISTS (SELECT 1 FROM migration_run WHERE project_id = #{projectId} AND status = 'RUNNING')
+	</select>
+
+	<insert id="insert">
+		INSERT INTO migration_run (run_id, project_id, status, total_tables, completed_tables,
+		                           current_table, message, started_at, finished_at)
+		VALUES (
+			#{id}, #{run.projectId}, #{run.status}, #{run.totalTables}, #{run.completedTables},
+			#{run.currentTable,jdbcType=VARCHAR}, #{run.message,jdbcType=VARCHAR},
+			#{run.startedAt}, #{run.finishedAt,jdbcType=TIMESTAMP_WITH_TIMEZONE}
+		)
+	</insert>
+
+	<update id="update">
+		UPDATE migration_run SET
+			status           = #{run.status},
+			total_tables     = #{run.totalTables},
+			completed_tables = #{run.completedTables},
+			current_table    = #{run.currentTable,jdbcType=VARCHAR},
+			message          = #{run.message,jdbcType=VARCHAR},
+			finished_at      = #{run.finishedAt,jdbcType=TIMESTAMP_WITH_TIMEZONE}
+		WHERE run_id = #{run.id}
+	</update>
+
+</mapper>
