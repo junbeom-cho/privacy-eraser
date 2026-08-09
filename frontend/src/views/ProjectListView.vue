@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 import { deleteProject, listProjects, type ProjectView } from '@/api/projects'
 
 const route = useRoute()
@@ -17,7 +18,6 @@ function dismissNotice() {
   router.replace({ name: 'project-list' })
 }
 
-/** Bootstrap 모달을 Vue 로 제어합니다. Bootstrap JS 는 DOM 을 직접 건드려 Vue 와 겹칩니다. */
 const target = ref<ProjectView | null>(null)
 const deleting = ref(false)
 
@@ -108,6 +108,9 @@ onMounted(load)
                 <RouterLink :to="`/projects/${project.id}/schema`" class="btn btn-sm btn-outline-primary me-1">
                   스키마
                 </RouterLink>
+                <RouterLink :to="`/projects/${project.id}/keywords`" class="btn btn-sm btn-outline-primary me-1">
+                  키워드
+                </RouterLink>
                 <RouterLink :to="`/projects/${project.id}`" class="btn btn-sm btn-outline-secondary me-1">
                   수정
                 </RouterLink>
@@ -121,29 +124,17 @@ onMounted(load)
       </div>
     </div>
 
-    <!-- 삭제 확인 -->
-    <div v-if="target" class="modal d-block" tabindex="-1" role="dialog">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h2 class="modal-title h6 mb-0">프로젝트 삭제</h2>
-            <button type="button" class="btn-close" aria-label="닫기" @click="target = null"></button>
-          </div>
-          <div class="modal-body">
-            <p class="mb-0">
-              <strong>{{ target.name }}</strong> 프로젝트를 삭제합니다. 되돌릴 수 없습니다.
-            </p>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-outline-secondary" @click="target = null">취소</button>
-            <button type="button" class="btn btn-danger" :disabled="deleting" @click="confirmDelete">
-              <span v-if="deleting" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
-              삭제
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div v-if="target" class="modal-backdrop fade show"></div>
+    <ConfirmModal
+      v-if="target"
+      title="프로젝트 삭제"
+      confirm-label="삭제"
+      :busy="deleting"
+      @confirm="confirmDelete"
+      @cancel="target = null"
+    >
+      <p class="mb-0">
+        <strong>{{ target.name }}</strong> 프로젝트를 삭제합니다. 되돌릴 수 없습니다.
+      </p>
+    </ConfirmModal>
   </main>
 </template>

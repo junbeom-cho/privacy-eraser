@@ -1,3 +1,5 @@
+import { request } from './http'
+
 export interface DbConnectionInput {
   url: string
   username: string
@@ -41,24 +43,6 @@ export function emptyConnection(): DbConnectionInput {
 export function toInput(connection: ConnectionView | null): DbConnectionInput {
   if (!connection) return emptyConnection()
   return { url: connection.url, username: connection.username, password: '', schema: connection.schema }
-}
-
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const response = await fetch(path, {
-    method,
-    headers: {
-      // 명시하지 않으면 Accept 가 */* 라, 매핑이 없는 경로에서 JSON 대신 HTML 오류 페이지가 옵니다.
-      Accept: 'application/json',
-      ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
-    },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  })
-  if (response.status === 204) return undefined as T
-  const payload = await response.json().catch(() => null)
-  if (!response.ok) {
-    throw new Error(payload?.message ?? '요청에 실패했습니다.')
-  }
-  return payload as T
 }
 
 export function testConnection(connection: DbConnectionInput) {

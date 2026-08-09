@@ -25,6 +25,11 @@ const router = createRouter({
       component: () => import('@/views/ProjectSchemaView.vue'),
     },
     {
+      path: '/projects/:id/keywords',
+      name: 'project-keywords',
+      component: () => import('@/views/ProjectKeywordsView.vue'),
+    },
+    {
       // 서버가 모르는 경로를 index.html 로 돌려보내므로, 앱 안에서 404 를 처리해야 합니다.
       path: '/:pathMatch(.*)*',
       name: 'not-found',
