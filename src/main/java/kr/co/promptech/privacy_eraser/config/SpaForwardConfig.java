@@ -1,7 +1,6 @@
 package kr.co.promptech.privacy_eraser.config;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
@@ -18,10 +17,10 @@ import java.io.IOException;
  * 그 주소로 새로고침하거나 직접 열면 요청이 서버까지 오는데, 서버에는 그런 파일이 없어 404 가 납니다.
  * 그래서 정적 파일이 없는 경로는 index.html 로 돌려보내 라우팅을 프론트에 맡깁니다.
  */
+@Slf4j
 @Configuration
 public class SpaForwardConfig implements WebMvcConfigurer {
 
-	private static final Logger log = LoggerFactory.getLogger(SpaForwardConfig.class);
 	private static final String INDEX_PATH = "static/index.html";
 
 	@Override

@@ -1,7 +1,7 @@
 package kr.co.promptech.privacy_eraser.keyword.domain;
 
-import lombok.Getter;
 
+import lombok.Getter;
 import java.util.Locale;
 import java.util.Objects;
 

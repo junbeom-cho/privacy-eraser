@@ -1,9 +1,8 @@
 package kr.co.promptech.privacy_eraser.config;
 
+import lombok.extern.slf4j.Slf4j;
 import kr.co.promptech.privacy_eraser.keyword.domain.KeywordNotFoundException;
 import kr.co.promptech.privacy_eraser.project.domain.ProjectNotFoundException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -27,10 +26,9 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
  * 요청(없는 정적 파일 등)까지 이 advice 가 가로채 브라우저에 JSON 을 내보내기 때문입니다.
  * 그 경우는 Spring 기본 처리에 맡겨 {@code public/error/*.html} 오류 화면이 나가게 합니다.
  */
+@Slf4j
 @RestControllerAdvice(annotations = RestController.class)
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
-
-	private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
 	/**
 	 * 도메인 규칙 위반입니다. 메시지는 도메인이 만든 것이라 사용자에게 보여도 됩니다.

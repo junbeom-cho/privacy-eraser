@@ -1,5 +1,6 @@
 package kr.co.promptech.privacy_eraser.keyword.application;
 
+import lombok.RequiredArgsConstructor;
 import kr.co.promptech.privacy_eraser.keyword.domain.Keyword;
 import kr.co.promptech.privacy_eraser.keyword.domain.KeywordNotFoundException;
 import kr.co.promptech.privacy_eraser.keyword.domain.KeywordRepository;
@@ -11,16 +12,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Locale;
 
+@RequiredArgsConstructor
 @Service
 public class KeywordService {
 
 	private final KeywordRepository keywordRepository;
 	private final ProjectRepository projectRepository;
-
-	public KeywordService(KeywordRepository keywordRepository, ProjectRepository projectRepository) {
-		this.keywordRepository = keywordRepository;
-		this.projectRepository = projectRepository;
-	}
 
 	@Transactional(readOnly = true)
 	public List<Keyword> findAll(Long projectId) {

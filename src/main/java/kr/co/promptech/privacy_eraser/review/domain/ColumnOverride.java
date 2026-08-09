@@ -1,7 +1,7 @@
 package kr.co.promptech.privacy_eraser.review.domain;
 
-import kr.co.promptech.privacy_eraser.keyword.domain.MaskingPolicy;
 import lombok.Getter;
+import kr.co.promptech.privacy_eraser.keyword.domain.MaskingPolicy;
 
 import java.util.Locale;
 import java.util.Objects;

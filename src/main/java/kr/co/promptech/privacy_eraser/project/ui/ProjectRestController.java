@@ -1,5 +1,6 @@
 package kr.co.promptech.privacy_eraser.project.ui;
 
+import lombok.RequiredArgsConstructor;
 import kr.co.promptech.privacy_eraser.project.application.CreateProjectCommand;
 import kr.co.promptech.privacy_eraser.project.application.ProjectService;
 import kr.co.promptech.privacy_eraser.project.application.UpdateProjectCommand;
@@ -21,15 +22,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/projects")
 public class ProjectRestController {
 
 	private final ProjectService projectService;
-
-	public ProjectRestController(ProjectService projectService) {
-		this.projectService = projectService;
-	}
 
 	@GetMapping
 	public List<ProjectResponse> findAll() {
@@ -63,8 +61,6 @@ public class ProjectRestController {
 	public ConnectionTestResult testConnection(@RequestBody DbConnectionRequest request) {
 		return projectService.testConnection(request.toDomain());
 	}
-
-
 
 	public record ProjectRequest(String name, DbConnectionRequest rawConnection, DbConnectionRequest editConnection) {
 

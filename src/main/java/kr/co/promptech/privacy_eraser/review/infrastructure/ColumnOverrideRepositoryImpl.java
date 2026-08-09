@@ -1,5 +1,6 @@
 package kr.co.promptech.privacy_eraser.review.infrastructure;
 
+import lombok.RequiredArgsConstructor;
 import kr.co.promptech.privacy_eraser.review.domain.ColumnOverride;
 import kr.co.promptech.privacy_eraser.review.domain.ColumnOverrideRepository;
 import org.springframework.stereotype.Repository;
@@ -8,14 +9,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
+@RequiredArgsConstructor
 @Repository
 public class ColumnOverrideRepositoryImpl implements ColumnOverrideRepository {
 
 	private final ColumnOverrideMapper columnOverrideMapper;
-
-	public ColumnOverrideRepositoryImpl(ColumnOverrideMapper columnOverrideMapper) {
-		this.columnOverrideMapper = columnOverrideMapper;
-	}
 
 	@Override
 	public Long save(ColumnOverride override) {

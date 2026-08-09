@@ -1,5 +1,6 @@
 package kr.co.promptech.privacy_eraser.keyword.ui;
 
+import lombok.RequiredArgsConstructor;
 import kr.co.promptech.privacy_eraser.keyword.application.KeywordService;
 import kr.co.promptech.privacy_eraser.keyword.application.SaveKeywordCommand;
 import kr.co.promptech.privacy_eraser.keyword.domain.Keyword;
@@ -22,15 +23,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/projects/{projectId}/keywords")
 public class KeywordRestController {
 
 	private final KeywordService keywordService;
-
-	public KeywordRestController(KeywordService keywordService) {
-		this.keywordService = keywordService;
-	}
 
 	@GetMapping
 	public List<KeywordResponse> findAll(@PathVariable Long projectId) {
@@ -55,8 +53,6 @@ public class KeywordRestController {
 	public void delete(@PathVariable Long projectId, @PathVariable Long keywordId) {
 		keywordService.delete(projectId, keywordId);
 	}
-
-
 
 	public record KeywordRequest(String word, KeywordType type, MaskingDirection direction, Integer length) {
 

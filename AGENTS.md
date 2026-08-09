@@ -74,15 +74,25 @@ npm --prefix frontend run build   # src/main/resources/static 으로 빌드 → 
   서비스가 `new Project(...)` 로 조립하는 빈혈 모델이 됩니다.
 - 엔티티 접근자는 **JavaBean 게터**(`getName()`)로 씁니다. MyBatis 가 `#{project.rawConnection.url}` 을
   해석할 때 게터를 찾습니다. `name()` 스타일로 두면 record 가 아닌 클래스에서는 바인딩이 깨집니다.
-- 엔티티에는 **`@Getter` 만** 씁니다. Lombok 으로 다음 셋은 만들지 않습니다.
+- Lombok 을 씁니다. 손으로 쓰던 것을 대체하는 용도입니다.
 
-  | 금지 | 이유 |
+  | 쓰는 것 | 어디에 |
   |---|---|
-  | `@Setter` | 상태 변경은 `update()` 처럼 뜻이 있는 메서드로 합니다. 세터를 열면 불변식 검사를 건너뜁니다 |
+  | `@Getter` | 엔티티 (`Project`, `Keyword`, `ColumnOverride`) |
+  | `@RequiredArgsConstructor` | 스프링 빈 — 서비스·리포지토리·컨트롤러의 주입 생성자 |
+  | `@Slf4j` | 로거가 필요한 클래스 |
+
+  다음 셋은 만들지 않습니다. 코드를 줄이는 게 아니라 **의미를 바꾸기** 때문입니다.
+
+  | 안 쓰는 것 | 이유 |
+  |---|---|
   | `@EqualsAndHashCode` | 엔티티는 id 로만 비교하고, id 가 없으면(미저장) 같지 않습니다. Lombok 으로 표현되지 않습니다 |
   | `@ToString` | 접속 정보·개인정보가 섞일 수 있어 무엇을 찍을지 직접 고릅니다 |
+  | `@Data` | 위 둘과 `@Setter` 를 함께 포함합니다 |
 
-  `@Data`, `@AllArgsConstructor` 도 위 셋을 포함하므로 쓰지 않습니다.
+  `@Setter` 는 지금 쓸 곳이 없습니다. 엔티티 상태는 `update()` 처럼 뜻이 있는 메서드로 바꾸고
+  그 안에서 불변식을 검사합니다. 세터가 필요해 보이면 그 변경에 이름을 붙일 수 있는지 먼저 봅니다.
+  값 객체·DTO 는 record 라 애초에 해당이 없습니다.
 - 불변식은 도메인에서 던집니다. 상태를 바꾸는 메서드도 같은 검사를 거치게 해서, 생성 이후에도
   규칙이 유지되게 합니다. 서비스·컨트롤러에서 같은 검사를 반복하지 않습니다.
 - 저장 시 DTO 변환은 infrastructure에서 합니다. 도메인에는 평문 비밀번호가, DB에는 암호문이 들어갑니다.

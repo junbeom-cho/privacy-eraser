@@ -1,5 +1,6 @@
 package kr.co.promptech.privacy_eraser.keyword.infrastructure;
 
+import lombok.RequiredArgsConstructor;
 import kr.co.promptech.privacy_eraser.keyword.domain.Keyword;
 import kr.co.promptech.privacy_eraser.keyword.domain.KeywordRepository;
 import org.springframework.stereotype.Repository;
@@ -7,14 +8,11 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
+@RequiredArgsConstructor
 @Repository
 public class KeywordRepositoryImpl implements KeywordRepository {
 
 	private final KeywordMapper keywordMapper;
-
-	public KeywordRepositoryImpl(KeywordMapper keywordMapper) {
-		this.keywordMapper = keywordMapper;
-	}
 
 	@Override
 	public Long save(Keyword keyword) {

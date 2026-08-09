@@ -1,5 +1,6 @@
 package kr.co.promptech.privacy_eraser.project.application;
 
+import lombok.RequiredArgsConstructor;
 import kr.co.promptech.privacy_eraser.project.domain.ConnectionTestResult;
 import kr.co.promptech.privacy_eraser.project.domain.ConnectionTester;
 import kr.co.promptech.privacy_eraser.project.domain.DbConnection;
@@ -11,16 +12,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @Service
 public class ProjectService {
 
 	private final ProjectRepository projectRepository;
 	private final ConnectionTester connectionTester;
-
-	public ProjectService(ProjectRepository projectRepository, ConnectionTester connectionTester) {
-		this.projectRepository = projectRepository;
-		this.connectionTester = connectionTester;
-	}
 
 	public ConnectionTestResult testConnection(DbConnection connection) {
 		return connectionTester.test(connection);

@@ -1,5 +1,6 @@
 package kr.co.promptech.privacy_eraser.schema.ui;
 
+import lombok.RequiredArgsConstructor;
 import kr.co.promptech.privacy_eraser.project.domain.ProjectNotFoundException;
 import kr.co.promptech.privacy_eraser.schema.application.SchemaService;
 import kr.co.promptech.privacy_eraser.schema.domain.ColumnMetadata;
@@ -14,22 +15,17 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/projects/{projectId}/tables")
 public class SchemaRestController {
 
 	private final SchemaService schemaService;
 
-	public SchemaRestController(SchemaService schemaService) {
-		this.schemaService = schemaService;
-	}
-
 	@GetMapping
 	public List<TableResponse> readTables(@PathVariable Long projectId) {
 		return schemaService.readTables(projectId).stream().map(TableResponse::from).toList();
 	}
-
-
 
 	public record ColumnResponse(String name, String type, boolean nullable, List<String> tokens) {
 

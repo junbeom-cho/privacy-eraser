@@ -1,5 +1,6 @@
 package kr.co.promptech.privacy_eraser.review.ui;
 
+import lombok.RequiredArgsConstructor;
 import kr.co.promptech.privacy_eraser.keyword.domain.MaskingDirection;
 import kr.co.promptech.privacy_eraser.keyword.domain.MaskingPolicy;
 import kr.co.promptech.privacy_eraser.review.application.ReviewService;
@@ -18,15 +19,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/projects/{projectId}/review")
 public class ReviewRestController {
 
 	private final ReviewService reviewService;
-
-	public ReviewRestController(ReviewService reviewService) {
-		this.reviewService = reviewService;
-	}
 
 	@GetMapping
 	public List<ColumnReviewResponse> review(@PathVariable Long projectId) {

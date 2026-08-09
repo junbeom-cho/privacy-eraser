@@ -1,7 +1,7 @@
 package kr.co.promptech.privacy_eraser.project.domain;
 
-import lombok.Getter;
 
+import lombok.Getter;
 import java.util.Objects;
 
 /**

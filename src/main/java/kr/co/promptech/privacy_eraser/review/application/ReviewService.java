@@ -1,5 +1,6 @@
 package kr.co.promptech.privacy_eraser.review.application;
 
+import lombok.RequiredArgsConstructor;
 import kr.co.promptech.privacy_eraser.keyword.domain.KeywordRepository;
 import kr.co.promptech.privacy_eraser.project.domain.Project;
 import kr.co.promptech.privacy_eraser.project.domain.ProjectNotFoundException;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+@RequiredArgsConstructor
 @Service
 public class ReviewService {
 
@@ -27,14 +29,6 @@ public class ReviewService {
 	private final KeywordRepository keywordRepository;
 	private final ColumnOverrideRepository overrideRepository;
 	private final SchemaReader schemaReader;
-
-	public ReviewService(ProjectRepository projectRepository, KeywordRepository keywordRepository,
-			ColumnOverrideRepository overrideRepository, SchemaReader schemaReader) {
-		this.projectRepository = projectRepository;
-		this.keywordRepository = keywordRepository;
-		this.overrideRepository = overrideRepository;
-		this.schemaReader = schemaReader;
-	}
 
 	/**
 	 * 원본의 모든 컬럼에 판정을 붙여 돌려줍니다.

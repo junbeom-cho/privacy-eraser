@@ -1,5 +1,6 @@
 package kr.co.promptech.privacy_eraser.project.infrastructure;
 
+import lombok.RequiredArgsConstructor;
 import kr.co.promptech.privacy_eraser.project.domain.Project;
 import kr.co.promptech.privacy_eraser.project.domain.ProjectRepository;
 import org.springframework.stereotype.Repository;
@@ -7,16 +8,12 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.Optional;
 
+@RequiredArgsConstructor
 @Repository
 public class ProjectRepositoryImpl implements ProjectRepository {
 
 	private final ProjectMapper projectMapper;
 	private final CredentialCipher credentialCipher;
-
-	public ProjectRepositoryImpl(ProjectMapper projectMapper, CredentialCipher credentialCipher) {
-		this.projectMapper = projectMapper;
-		this.credentialCipher = credentialCipher;
-	}
 
 	@Override
 	public Long save(Project project) {
