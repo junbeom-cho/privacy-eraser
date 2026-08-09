@@ -29,20 +29,7 @@ public class SchemaController {
 		return schemaService.readTables(projectId).stream().map(TableResponse::from).toList();
 	}
 
-	@ExceptionHandler(ProjectNotFoundException.class)
-	@ResponseStatus(HttpStatus.NOT_FOUND)
-	public ErrorResponse handleNotFound(ProjectNotFoundException e) {
-		return new ErrorResponse(e.getMessage());
-	}
 
-	/**
-	 * 원본 DB 접속·조회 실패는 서버 잘못이 아니라 사용자가 넣은 접속 정보 문제입니다.
-	 */
-	@ExceptionHandler(IllegalStateException.class)
-	@ResponseStatus(HttpStatus.BAD_REQUEST)
-	public ErrorResponse handleReadFailure(IllegalStateException e) {
-		return new ErrorResponse("원본 스키마를 읽지 못했습니다. " + e.getMessage());
-	}
 
 	public record ColumnResponse(String name, String type, boolean nullable, List<String> tokens) {
 
@@ -59,6 +46,4 @@ public class SchemaController {
 		}
 	}
 
-	public record ErrorResponse(String message) {
-	}
 }

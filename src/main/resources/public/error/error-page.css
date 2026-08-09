@@ -1,0 +1,127 @@
+/*
+ * 서버가 내는 오류 페이지 전용 스타일입니다.
+ * 이 페이지들은 프론트 번들이 없는 상황(빌드 전, 기동 실패)에서도 떠야 하므로
+ * Bootstrap 에 기대지 않고 홀로 섭니다. 색은 앱과 같은 톤으로 맞춥니다.
+ */
+:root {
+    --bg: #ffffff;
+    --surface: #f8f9fa;
+    --fg: #1f2328;
+    --muted: #6b7280;
+    --line: #d0d7de;
+    --accent: #2563eb;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #212529;
+        --surface: #2b3035;
+        --fg: #dee2e6;
+        --muted: #9aa1ab;
+        --line: #495057;
+        --accent: #6ea8fe;
+    }
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: system-ui, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    line-height: 1.5;
+}
+
+.card {
+    width: 100%;
+    max-width: 32rem;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface);
+    overflow: hidden;
+}
+
+.brand {
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid var(--line);
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.brand small {
+    margin-left: 0.5rem;
+    color: var(--muted);
+    font-weight: 400;
+}
+
+.body {
+    padding: 1.75rem 1.25rem 1.5rem;
+}
+
+h1 {
+    margin: 0 0 0.5rem;
+    font-size: 1.25rem;
+}
+
+p {
+    margin: 0 0 1.25rem;
+    color: var(--muted);
+    font-size: 0.925rem;
+}
+
+/* 이 도구가 하는 일(컬럼을 * 로 가리기)이 오류 화면에도 드러나도록 DB 표 모양으로 보여줍니다. */
+.record {
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.85rem;
+}
+
+.record div {
+    display: flex;
+    gap: 1rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.record div + div {
+    border-top: 1px solid var(--line);
+}
+
+.record dt {
+    flex: 0 0 7.5rem;
+    margin: 0;
+    color: var(--muted);
+}
+
+.record dd {
+    margin: 0;
+}
+
+.masked {
+    color: var(--accent);
+    letter-spacing: 0.1em;
+}
+
+a.button {
+    display: inline-block;
+    padding: 0.5rem 1.1rem;
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 0.9rem;
+    text-decoration: none;
+}
+
+a.button:hover {
+    opacity: 0.9;
+}

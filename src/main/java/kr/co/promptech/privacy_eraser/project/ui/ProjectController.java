@@ -64,20 +64,7 @@ public class ProjectController {
 		return projectService.testConnection(request.toDomain());
 	}
 
-	/**
-	 * 도메인 규칙 위반은 모두 여기로 모입니다. 비밀번호가 섞이지 않도록 메시지는 도메인이 만든 것만 씁니다.
-	 */
-	@ExceptionHandler(IllegalArgumentException.class)
-	@ResponseStatus(HttpStatus.BAD_REQUEST)
-	public ErrorResponse handleInvalidRequest(IllegalArgumentException e) {
-		return new ErrorResponse(e.getMessage());
-	}
 
-	@ExceptionHandler(ProjectNotFoundException.class)
-	@ResponseStatus(HttpStatus.NOT_FOUND)
-	public ErrorResponse handleNotFound(ProjectNotFoundException e) {
-		return new ErrorResponse(e.getMessage());
-	}
 
 	public record ProjectRequest(String name, DbConnectionRequest rawConnection, DbConnectionRequest editConnection) {
 
@@ -130,6 +117,4 @@ public class ProjectController {
 	public record CreateProjectResponse(Long id) {
 	}
 
-	public record ErrorResponse(String message) {
-	}
 }

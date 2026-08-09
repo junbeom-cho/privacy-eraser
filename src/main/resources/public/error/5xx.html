@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>서버 오류 · Privacy Eraser</title>
+    <link rel="icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/error/error-page.css">
+</head>
+<body>
+<main class="card">
+    <div class="brand">Privacy Eraser <small>DB 개인정보 비식별화</small></div>
+    <div class="body">
+        <h1>서버에서 문제가 발생했습니다</h1>
+        <p>
+            잠시 후 다시 시도해 주세요. 계속되면 서버 로그를 확인하세요.
+            원인은 로그에만 남기고 화면에는 표시하지 않습니다.
+        </p>
+
+        <dl class="record">
+            <div><dt>STATUS</dt><dd>5xx SERVER_ERROR</dd></div>
+            <div><dt>CAUSE</dt><dd class="masked">********</dd></div>
+        </dl>
+
+        <a class="button" href="/">프로젝트 목록으로</a>
+    </div>
+</main>
+</body>
+</html>

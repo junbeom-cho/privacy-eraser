@@ -53,7 +53,14 @@ npm --prefix frontend run build   # src/main/resources/static 으로 빌드 → 
 의존 방향이 바깥에서 안쪽으로만 향합니다(포트는 `domain`, 구현은 `infrastructure`).
 리포지토리 구현은 `{도메인}RepositoryImpl` 로 씁니다. `MyBatisXxx` 처럼 기술명을 붙이지 않습니다 —
 구현이 하나뿐이라 구분해 주는 것이 없고, 기술을 바꾸면 이름부터 거짓말이 됩니다.
-| `ui` | 컨트롤러, 요청/응답 DTO, 예외→상태코드 | 비즈니스 로직 금지 |
+| `ui` | 컨트롤러, 요청/응답 DTO | 비즈니스 로직 금지, `@ExceptionHandler` 금지 |
+
+예외→상태코드 변환은 `config/GlobalExceptionHandler` 한 곳에서만 합니다. 컨트롤러에 `@ExceptionHandler`
+를 두면 그 컨트롤러에서는 전역 처리가 무시되어, 같은 예외가 경로마다 다르게 응답합니다.
+새 예외를 만들면 여기에 매핑을 추가합니다. **catch-all(`Exception`)은 사유를 밖으로 내보내지 않습니다** —
+스택트레이스·SQL 에 접속 정보가 섞이므로 로그에만 남기고 고정 문구를 응답합니다.
+`ResponseEntityExceptionHandler` 를 상속한 이유는, 상속하지 않으면 catch-all 이 Spring 의 정상 예외
+(없는 경로 404, 타입 불일치 400)까지 삼켜 전부 500 으로 만들기 때문입니다.
 
 - **엔티티는 클래스, 값 객체는 record 입니다.**
 

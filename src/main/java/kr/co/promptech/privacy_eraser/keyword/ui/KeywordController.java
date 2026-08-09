@@ -56,17 +56,7 @@ public class KeywordController {
 		keywordService.delete(projectId, keywordId);
 	}
 
-	@ExceptionHandler(IllegalArgumentException.class)
-	@ResponseStatus(HttpStatus.BAD_REQUEST)
-	public ErrorResponse handleInvalidRequest(IllegalArgumentException e) {
-		return new ErrorResponse(e.getMessage());
-	}
 
-	@ExceptionHandler({ ProjectNotFoundException.class, KeywordNotFoundException.class })
-	@ResponseStatus(HttpStatus.NOT_FOUND)
-	public ErrorResponse handleNotFound(RuntimeException e) {
-		return new ErrorResponse(e.getMessage());
-	}
 
 	public record KeywordRequest(String word, KeywordType type, MaskingDirection direction, Integer length) {
 
@@ -102,6 +92,4 @@ public class KeywordController {
 	public record CreatedResponse(Long id) {
 	}
 
-	public record ErrorResponse(String message) {
-	}
 }
