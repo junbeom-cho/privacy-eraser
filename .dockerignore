@@ -1,0 +1,24 @@
+# 빌드 컨텍스트에서 뺍니다. 이미지에 들어가면 안 되는 것과, 어차피 컨테이너 안에서 다시 만드는 것들입니다.
+
+# 시크릿. 이미지에 절대 들어가면 안 됩니다.
+.env
+
+# 빌드 산출물 - 이미지 안에서 새로 만듭니다. 호스트 것이 섞이면 옛 파일이 남습니다.
+target/
+frontend/node_modules/
+frontend/dist/
+src/main/resources/static/
+
+.git/
+.gitignore
+.idea/
+.vscode/
+.DS_Store
+
+# 실행에 필요 없는 것들
+docs/
+infra/
+*.md
+.mvn/
+mvnw
+mvnw.cmd

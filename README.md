@@ -59,6 +59,35 @@ npm --prefix frontend run dev     # http://localhost:5173
 npm --prefix frontend run build
 ```
 
+### 도커로 한 번에 띄우기
+
+앱과 프로젝트 정보 DB를 같이 올립니다. Java도 Node도 없는 곳에서 이것만으로 돌아갑니다.
+
+```bash
+cp .env.example .env
+docker compose up -d --build
+```
+
+`.env`에 `CREDENTIAL_SECRET`이 없으면 **compose가 시작하지 않습니다.** 기본값을 두지 않기 때문입니다.
+이 값이 바뀌면 이미 저장된 raw/edit 비밀번호는 복호화할 수 없으니, 운영에서는 값을 고정해 두세요.
+
+이미지는 3단계로 빌드됩니다. Vue를 빌드해 `src/main/resources/static`에 넣고 → Maven으로 jar를 말고 →
+JRE 이미지에 jar 하나만 남깁니다(377MB, 비루트 실행).
+
+`docker-compose.yaml`은 `infra/postgres` 정의를 `include`로 가져다 씁니다. 볼륨이 같아서
+DB만 띄우던 개발 방식과 데이터를 공유합니다.
+
+> **비식별화 대상 Oracle 주소에 주의하세요.** 컨테이너 안에서 `localhost`는 컨테이너 자신입니다.
+> 프로젝트 접속 정보의 URL을 Oracle이 어디서 도는지에 맞춰 바꿔야 합니다.
+>
+> | Oracle 위치 | URL | 필요한 설정 |
+> |---|---|---|
+> | 호스트 | `jdbc:oracle:thin:@//host.docker.internal:1521/FREEPDB1` | 기본 포함 (`extra_hosts`) |
+> | 도커 (`infra/oracle`) | `jdbc:oracle:thin:@//oracle23ai:1521/FREEPDB1` | `docker-compose.yaml`의 `networks` 주석 해제 |
+>
+> Oracle을 도커로 띄우면 compose 프로젝트가 달라 네트워크도 분리됩니다. 같은 네트워크에 붙여야
+> 컨테이너 이름으로 서로를 찾습니다.
+
 ### 테스트
 
 ```bash
