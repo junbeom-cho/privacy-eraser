@@ -60,11 +60,11 @@ const steps = computed(() => [
   {
     no: 4,
     name: '검수',
-    to: '',
+    // 키워드가 없으면 전부 비대상으로만 나와 볼 것이 없습니다.
+    to: keywordCount.value > 0 ? `/projects/${projectId}/review` : '',
     exact: false,
     badge: null,
-    blockedReason:
-      keywordCount.value === 0 ? '키워드를 먼저 등록하세요' : '준비 중입니다',
+    blockedReason: '키워드를 먼저 등록하세요',
   },
   {
     no: 5,

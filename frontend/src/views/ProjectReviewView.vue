@@ -1,0 +1,204 @@
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
+import { messageOf } from '@/api/http'
+import { DIRECTION_LABEL, type MaskingDirection } from '@/api/keywords'
+import {
+  clearOverride,
+  listReview,
+  overrideColumn,
+  SOURCE_LABEL,
+  type ColumnReviewView,
+} from '@/api/review'
+
+const route = useRoute()
+const projectId = Number(route.params.id)
+
+const rows = ref<ColumnReviewView[]>([])
+const loading = ref(true)
+const error = ref('')
+const savingKey = ref<string | null>(null)
+const onlyMasked = ref(false)
+
+const maskedCount = computed(() => rows.value.filter((r) => r.masked).length)
+const overriddenCount = computed(() => rows.value.filter((r) => r.source === 'USER').length)
+const warningCount = computed(() => rows.value.filter((r) => r.policyExceedsLength).length)
+
+/** 테이블 단위로 묶어서 보여줍니다. */
+const tables = computed(() => {
+  const visible = onlyMasked.value ? rows.value.filter((r) => r.masked) : rows.value
+  const byTable = new Map<string, ColumnReviewView[]>()
+  for (const row of visible) {
+    if (!byTable.has(row.tableName)) byTable.set(row.tableName, [])
+    byTable.get(row.tableName)!.push(row)
+  }
+  return [...byTable.entries()].map(([name, columns]) => ({ name, columns }))
+})
+
+const keyOf = (row: ColumnReviewView) => `${row.tableName}.${row.columnName}`
+
+async function load() {
+  loading.value = true
+  error.value = ''
+  try {
+    rows.value = await listReview(projectId)
+  } catch (e) {
+    error.value = messageOf(e, '검수 목록을 불러오지 못했습니다.')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function apply(row: ColumnReviewView, change: Partial<ColumnReviewView>) {
+  const next = { ...row, ...change }
+  savingKey.value = keyOf(row)
+  error.value = ''
+  try {
+    await overrideColumn(projectId, row.tableName, row.columnName, {
+      masked: next.masked,
+      direction: next.masked ? (next.direction ?? 'FROM_END') : null,
+      length: next.masked ? (next.length ?? 4) : null,
+    })
+    await load()
+  } catch (e) {
+    error.value = messageOf(e, '저장하지 못했습니다.')
+  } finally {
+    savingKey.value = null
+  }
+}
+
+async function revert(row: ColumnReviewView) {
+  savingKey.value = keyOf(row)
+  error.value = ''
+  try {
+    await clearOverride(projectId, row.tableName, row.columnName)
+    await load()
+  } catch (e) {
+    error.value = messageOf(e, '되돌리지 못했습니다.')
+  } finally {
+    savingKey.value = null
+  }
+}
+
+onMounted(load)
+</script>
+
+<template>
+  <div>
+    <div class="d-flex align-items-center justify-content-between mb-1">
+      <h2 class="h6 mb-0">4. 검수</h2>
+      <div class="form-check form-switch small">
+        <input id="onlyMasked" v-model="onlyMasked" class="form-check-input" type="checkbox" />
+        <label class="form-check-label" for="onlyMasked">마스킹 대상만</label>
+      </div>
+    </div>
+    <p class="text-body-secondary small mb-3">
+      키워드 판정은 <strong>제안</strong>입니다. 컬럼마다 직접 바꿀 수 있고, 바꾼 값이 항상 우선합니다.
+    </p>
+
+    <div v-if="error" class="alert alert-danger" role="alert">{{ error }}</div>
+
+    <div v-if="loading" class="text-body-secondary small">
+      <span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
+      원본을 읽고 판정하는 중
+    </div>
+
+    <template v-else>
+      <div class="d-flex gap-3 small mb-3">
+        <span>전체 <strong>{{ rows.length }}</strong></span>
+        <span class="text-primary">마스킹 <strong>{{ maskedCount }}</strong></span>
+        <span class="text-body-secondary">직접 지정 <strong>{{ overriddenCount }}</strong></span>
+        <span v-if="warningCount" class="text-warning">길이 초과 <strong>{{ warningCount }}</strong></span>
+      </div>
+
+      <div v-for="table in tables" :key="table.name" class="card mb-3">
+        <div class="card-header fw-semibold font-mono">{{ table.name }}</div>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0 small">
+            <thead>
+              <tr class="text-body-secondary">
+                <th scope="col">컬럼</th>
+                <th scope="col">타입</th>
+                <th scope="col" style="width: 6rem">마스킹</th>
+                <th scope="col" style="width: 15rem">정책</th>
+                <th scope="col">판정 근거</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in table.columns" :key="keyOf(row)" :class="{ 'opacity-50': savingKey === keyOf(row) }">
+                <td class="font-mono">
+                  {{ row.columnName }}
+                  <span
+                    v-if="row.policyExceedsLength"
+                    class="badge text-bg-warning ms-1 fw-normal"
+                    title="정책이 컬럼 길이보다 깁니다. 값 전체가 가려질 수 있습니다."
+                  >길이 초과</span>
+                </td>
+                <td class="font-mono text-body-secondary">{{ row.type }}</td>
+
+                <td>
+                  <div class="form-check form-switch mb-0">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      :checked="row.masked"
+                      :disabled="savingKey === keyOf(row)"
+                      @change="apply(row, { masked: !row.masked })"
+                    />
+                  </div>
+                </td>
+
+                <td>
+                  <div v-if="row.masked" class="d-flex gap-1">
+                    <select
+                      class="form-select form-select-sm"
+                      :value="row.direction ?? 'FROM_END'"
+                      :disabled="savingKey === keyOf(row)"
+                      @change="apply(row, { direction: ($event.target as HTMLSelectElement).value as MaskingDirection })"
+                    >
+                      <option value="FROM_END">{{ DIRECTION_LABEL.FROM_END }}</option>
+                      <option value="FROM_START">{{ DIRECTION_LABEL.FROM_START }}</option>
+                    </select>
+                    <input
+                      type="number"
+                      min="1"
+                      class="form-control form-control-sm"
+                      style="width: 4.5rem"
+                      :value="row.length ?? 4"
+                      :disabled="savingKey === keyOf(row)"
+                      @change="apply(row, { length: Number(($event.target as HTMLInputElement).value) })"
+                    />
+                  </div>
+                  <span v-else class="text-body-secondary">—</span>
+                </td>
+
+                <td>
+                  <span
+                    class="badge fw-normal"
+                    :class="{
+                      'text-bg-info': row.source === 'USER',
+                      'text-bg-secondary': row.source === 'UNDO_KEYWORD' || row.source === 'NO_MATCH',
+                      'text-bg-primary': row.source === 'DO_KEYWORD',
+                    }"
+                  >{{ SOURCE_LABEL[row.source] }}</span>
+                  <span v-if="row.matchedKeyword" class="font-mono text-body-secondary ms-1">
+                    {{ row.matchedKeyword }}
+                  </span>
+                  <button
+                    v-if="row.source === 'USER'"
+                    type="button"
+                    class="btn btn-sm btn-link p-0 ms-2"
+                    :disabled="savingKey === keyOf(row)"
+                    @click="revert(row)"
+                  >
+                    되돌리기
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </template>
+  </div>
+</template>

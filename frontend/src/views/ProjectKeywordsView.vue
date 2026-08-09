@@ -222,6 +222,12 @@ onMounted(load)
       </div>
     </template>
 
+    <div v-if="keywords.length > 0" class="d-flex justify-content-end mt-3">
+      <RouterLink :to="`/projects/${projectId}/review`" class="btn btn-outline-primary">
+        다음 단계 · 검수 →
+      </RouterLink>
+    </div>
+
     <ConfirmModal
       v-if="target"
       title="키워드 삭제"

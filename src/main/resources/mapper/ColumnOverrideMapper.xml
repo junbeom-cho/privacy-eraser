@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.co.promptech.privacy_eraser.review.infrastructure.ColumnOverrideMapper">
+
+	<resultMap id="overrideRow" type="kr.co.promptech.privacy_eraser.review.infrastructure.ColumnOverrideRow">
+		<constructor>
+			<idArg column="override_id" javaType="java.lang.Long"/>
+			<arg column="project_id" javaType="java.lang.Long"/>
+			<arg column="table_name" javaType="java.lang.String"/>
+			<arg column="column_name" javaType="java.lang.String"/>
+			<!-- MyBatis 에서 boolean 은 java.lang.Boolean 입니다. record 가 원시형이라 _boolean 으로 맞춥니다. -->
+			<arg column="masked" javaType="_boolean"/>
+			<arg column="mask_direction" javaType="java.lang.String"/>
+			<arg column="mask_length" javaType="java.lang.Integer"/>
+		</constructor>
+	</resultMap>
+
+	<sql id="columns">
+		override_id, project_id, table_name, column_name, masked, mask_direction, mask_length
+	</sql>
+
+	<select id="nextOverrideId" resultType="long">
+		SELECT nextval('column_override_seq')
+	</select>
+
+	<select id="findAllByProjectId" resultMap="overrideRow">
+		SELECT <include refid="columns"/> FROM column_override
+		 WHERE project_id = #{projectId}
+		 ORDER BY table_name, column_name
+	</select>
+
+	<select id="findOne" resultMap="overrideRow">
+		SELECT <include refid="columns"/> FROM column_override
+		 WHERE project_id = #{projectId} AND table_name = #{tableName} AND column_name = #{columnName}
+	</select>
+
+	<insert id="insert">
+		INSERT INTO column_override (override_id, project_id, table_name, column_name, masked, mask_direction, mask_length)
+		VALUES (
+			#{id}, #{override.projectId}, #{override.tableName}, #{override.columnName}, #{override.masked},
+			<!-- 마스킹하지 않기로 했으면 정책이 null 입니다. jdbcType 이 없으면 드라이버가 타입을 몰라 실패합니다. -->
+			#{override.policy.direction,jdbcType=VARCHAR}, #{override.policy.length,jdbcType=INTEGER}
+		)
+	</insert>
+
+	<update id="update">
+		UPDATE column_override SET
+			masked         = #{override.masked},
+			mask_direction = #{override.policy.direction,jdbcType=VARCHAR},
+			mask_length    = #{override.policy.length,jdbcType=INTEGER}
+		WHERE override_id = #{override.id}
+	</update>
+
+	<delete id="deleteById">
+		DELETE FROM column_override WHERE override_id = #{id}
+	</delete>
+
+</mapper>

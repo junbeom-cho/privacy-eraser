@@ -34,6 +34,11 @@ const router = createRouter({
           name: 'project-keywords',
           component: () => import('@/views/ProjectKeywordsView.vue'),
         },
+        {
+          path: 'review',
+          name: 'project-review',
+          component: () => import('@/views/ProjectReviewView.vue'),
+        },
       ],
     },
     {
