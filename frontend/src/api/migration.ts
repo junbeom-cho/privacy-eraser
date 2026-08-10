@@ -33,6 +33,14 @@ export function startMigration(projectId: number) {
   return request<{ runId: number }>('POST', `/api/projects/${projectId}/migration`)
 }
 
+/**
+ * 이관 대상 스키마를 만드는 SQL. 도구는 실행하지 않습니다.
+ * 원본을 실시간으로 읽어 테이블별 SELECT 권한까지 만들어 주므로 조금 걸립니다.
+ */
+export function migrationSetupScript(projectId: number) {
+  return request<{ script: string }>('GET', `/api/projects/${projectId}/migration/setup-script`)
+}
+
 /** 가장 최근 실행. 아직 실행한 적이 없으면 null 입니다. */
 export function latestMigration(projectId: number) {
   return request<MigrationRunView | null>('GET', `/api/projects/${projectId}/migration`)

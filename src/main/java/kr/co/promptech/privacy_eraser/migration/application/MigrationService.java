@@ -2,6 +2,7 @@ package kr.co.promptech.privacy_eraser.migration.application;
 
 import kr.co.promptech.privacy_eraser.migration.domain.ColumnMaskingStat;
 import kr.co.promptech.privacy_eraser.migration.domain.ConstraintDefinition;
+import kr.co.promptech.privacy_eraser.migration.domain.EditSchemaScript;
 import kr.co.promptech.privacy_eraser.migration.domain.ConstraintType;
 import kr.co.promptech.privacy_eraser.migration.domain.MaskingConflicts;
 import kr.co.promptech.privacy_eraser.migration.domain.MigrationExecutor;
@@ -14,6 +15,8 @@ import kr.co.promptech.privacy_eraser.project.domain.ProjectNotFoundException;
 import kr.co.promptech.privacy_eraser.project.domain.ProjectRepository;
 import kr.co.promptech.privacy_eraser.review.application.ReviewService;
 import kr.co.promptech.privacy_eraser.review.domain.ColumnReview;
+import kr.co.promptech.privacy_eraser.schema.application.SchemaService;
+import kr.co.promptech.privacy_eraser.schema.domain.TableMetadata;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -41,6 +44,7 @@ public class MigrationService {
 	private final MigrationExecutor executor;
 	private final ReviewService reviewService;
 	private final SourceObjectReader sourceObjectReader;
+	private final SchemaService schemaService;
 	/**
 	 * 실행을 별도 스레드로 넘깁니다. 필드명이 Spring 이 등록하는 빈 이름과 같아야 주입됩니다.
 	 * 테스트에서는 {@code Runnable::run} 을 넣어 동기로 돌립니다.
@@ -86,6 +90,22 @@ public class MigrationService {
 
 	public Optional<MigrationRun> findById(Long runId) {
 		return runRepository.findById(runId);
+	}
+
+	/**
+	 * 이관 대상 스키마를 만드는 SQL 입니다. 도구는 만들지 않고 무엇이 필요한지만 알려줍니다.
+	 * 자세한 이유는 {@link EditSchemaScript} 에 있습니다.
+	 */
+	public String editSchemaScript(Long projectId) {
+		Project project = projectRepository.findById(projectId)
+				.orElseThrow(() -> new ProjectNotFoundException(projectId));
+		if (!project.hasEditConnection()) {
+			return "";
+		}
+		List<String> tables = schemaService.readTables(projectId).stream()
+				.map(TableMetadata::name)
+				.toList();
+		return EditSchemaScript.of(project.getRawConnection(), project.getEditConnection(), tables);
 	}
 
 	/** 이관 후 통계입니다. 실행이 끝나야 값이 있습니다. */
@@ -153,6 +173,8 @@ public class MigrationService {
 			List<ConstraintDefinition> constraints) {
 		MigrationRun run = runRepository.findById(runId).orElseThrow();
 		try {
+			// 문장마다 접속을 새로 열면 수천 번이 되어 리스너가 거부합니다(ORA-12516).
+			executor.openSession(project.getEditConnection());
 			for (MigrationTarget target : targets) {
 				run.working(target.tableName());
 				runRepository.update(run);
@@ -175,6 +197,9 @@ public class MigrationService {
 		catch (RuntimeException e) {
 			log.error("이관에 실패했습니다. runId={}", runId, e);
 			run.failed(e.getMessage(), OffsetDateTime.now());
+		}
+		finally {
+			executor.closeSession();
 		}
 		runRepository.update(run);
 	}

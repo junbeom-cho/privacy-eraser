@@ -14,6 +14,17 @@ public interface MigrationExecutor {
 	 * 이관 대상에 같은 이름의 테이블이 있으면 지웁니다.
 	 * 지우는 범위를 원본에 있는 테이블로 한정해, 접속을 잘못 넣었을 때 피해를 줄입니다.
 	 */
+	/**
+	 * 이관 대상 접속을 하나 열어 둡니다.
+	 * <p>
+	 * 문장마다 새로 열면 테이블 수백 개짜리 스키마에서 수천 번이 되어, 리스너가
+	 * {@code ORA-12516} 으로 거부합니다. 실제로 134개 테이블에서 인덱스 단계에 죽었습니다.
+	 */
+	void openSession(DbConnection edit);
+
+	/** 실패하든 성공하든 반드시 닫아야 합니다. */
+	void closeSession();
+
 	void dropIfExists(DbConnection edit, String tableName);
 
 	/**

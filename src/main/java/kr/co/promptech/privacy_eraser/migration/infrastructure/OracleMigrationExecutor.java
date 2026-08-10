@@ -8,6 +8,7 @@ import kr.co.promptech.privacy_eraser.migration.domain.MigrationExecutor;
 import kr.co.promptech.privacy_eraser.migration.domain.SequenceDefinition;
 import kr.co.promptech.privacy_eraser.migration.domain.MigrationTarget;
 import kr.co.promptech.privacy_eraser.project.domain.DbConnection;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
@@ -25,10 +26,49 @@ import java.util.stream.Collectors;
  * 접속은 <b>이관 대상 계정</b>으로 합니다. 원본에는 SELECT 권한만 있으면 되고,
  * 쓰기는 이관 대상 스키마에서만 일어납니다.
  */
+@Slf4j
 @Component
 public class OracleMigrationExecutor implements MigrationExecutor {
 
 	private static final int TIMEOUT_SECONDS = 600;
+
+	/**
+	 * 실행 중에 열어 두는 접속입니다. 이관은 스레드 하나에서 순서대로 돌기 때문에 스레드마다 하나면 됩니다.
+	 */
+	private final ThreadLocal<Connection> session = new ThreadLocal<>();
+
+	@Override
+	public void openSession(DbConnection edit) {
+		closeSession();
+		session.set(connect(edit));
+	}
+
+	@Override
+	public void closeSession() {
+		Connection open = session.get();
+		session.remove();
+		if (open != null) {
+			try {
+				open.close();
+			}
+			catch (SQLException e) {
+				// 닫는 데 실패해도 할 수 있는 일이 없습니다. 이관 결과를 뒤집을 이유는 더더욱 없습니다.
+				log.warn("이관 대상 접속을 닫지 못했습니다.", e);
+			}
+		}
+	}
+
+	private static Connection connect(DbConnection target) {
+		Properties properties = new Properties();
+		properties.setProperty("user", target.username());
+		properties.setProperty("password", target.password());
+		try {
+			return DriverManager.getConnection(target.url(), properties);
+		}
+		catch (SQLException e) {
+			throw new IllegalStateException(e.getMessage());
+		}
+	}
 
 	@Override
 	public void dropIfExists(DbConnection edit, String tableName) {
@@ -127,13 +167,23 @@ public class OracleMigrationExecutor implements MigrationExecutor {
 		return OracleMaskExpression.quote(connection.schema().toUpperCase(Locale.ROOT));
 	}
 
-	private static void execute(DbConnection target, String sql) {
-		Properties properties = new Properties();
-		properties.setProperty("user", target.username());
-		properties.setProperty("password", target.password());
+	/** 열어 둔 접속이 있으면 그것을 씁니다. 없으면 이 문장만을 위해 하나 열고 닫습니다. */
+	private void execute(DbConnection target, String sql) {
+		Connection open = session.get();
+		if (open != null) {
+			run(open, sql);
+			return;
+		}
+		try (Connection connection = connect(target)) {
+			run(connection, sql);
+		}
+		catch (SQLException e) {
+			throw new IllegalStateException(e.getMessage());
+		}
+	}
 
-		try (Connection connection = DriverManager.getConnection(target.url(), properties);
-				Statement statement = connection.createStatement()) {
+	private static void run(Connection connection, String sql) {
+		try (Statement statement = connection.createStatement()) {
 			statement.setQueryTimeout(TIMEOUT_SECONDS);
 			statement.execute(sql);
 		}

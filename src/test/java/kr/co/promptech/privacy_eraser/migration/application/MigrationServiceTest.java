@@ -21,6 +21,7 @@ import kr.co.promptech.privacy_eraser.project.domain.ProjectRepository;
 import kr.co.promptech.privacy_eraser.review.application.ReviewService;
 import kr.co.promptech.privacy_eraser.review.domain.ColumnReview;
 import kr.co.promptech.privacy_eraser.review.domain.MaskingDecision;
+import kr.co.promptech.privacy_eraser.schema.application.SchemaService;
 import kr.co.promptech.privacy_eraser.schema.domain.ColumnMetadata;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -62,7 +63,8 @@ class MigrationServiceTest {
 				review("EMPLOYEES", "PHONE_NUMBER", 뒤_4자리),
 				review("DEPARTMENTS", "DEPARTMENT_ID", null)));
 		// 테스트에서는 같은 스레드에서 돌려 결과를 바로 확인합니다.
-		service = new MigrationService(projects, runs, executor, reviewService, source, Runnable::run);
+		service = new MigrationService(projects, runs, executor, reviewService, source,
+				Mockito.mock(SchemaService.class), Runnable::run);
 	}
 
 	private static ColumnReview review(String table, String column, MaskingPolicy policy) {
@@ -221,6 +223,24 @@ class MigrationServiceTest {
 	}
 
 	@Test
+	void 이관_한_번에_접속도_한_번만_연다() {
+		// 문장마다 새로 열면 테이블 수백 개에 수천 번이 되어 리스너가 거부합니다(ORA-12516).
+		service.start(1L);
+
+		assertThat(executor.sessionsOpened).isEqualTo(1);
+		assertThat(executor.sessionsClosed).isEqualTo(1);
+	}
+
+	@Test
+	void 실패해도_접속을_닫는다() {
+		executor.failOn = "DEPARTMENTS";
+
+		service.start(1L);
+
+		assertThat(executor.sessionsClosed).isEqualTo(1);
+	}
+
+	@Test
 	void 없는_프로젝트는_실행할_수_없다() {
 		assertThatThrownBy(() -> service.start(999L)).isInstanceOf(ProjectNotFoundException.class);
 	}
@@ -235,6 +255,19 @@ class MigrationServiceTest {
 
 	private static class RecordingExecutor implements MigrationExecutor {
 		private final List<String> dropped = new ArrayList<>();
+		private int sessionsOpened;
+		private int sessionsClosed;
+
+		@Override
+		public void openSession(DbConnection edit) {
+			sessionsOpened++;
+		}
+
+		@Override
+		public void closeSession() {
+			sessionsClosed++;
+		}
+
 		private final List<MigrationTarget> created = new ArrayList<>();
 		private final List<String> applied = new ArrayList<>();
 		private String failOn;
