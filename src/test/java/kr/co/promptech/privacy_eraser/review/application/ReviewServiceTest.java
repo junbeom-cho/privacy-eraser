@@ -34,6 +34,8 @@ class ReviewServiceTest {
 	private static final MaskingPolicy 앞_1자리 = new MaskingPolicy(MaskingDirection.FROM_START, 1);
 	private static final DbConnection RAW =
 			new DbConnection("jdbc:oracle:thin:@localhost:1521/XE", "hr", "pw", "HR");
+	private static final DbConnection EDIT =
+			new DbConnection("jdbc:oracle:thin:@localhost:1521/XE", "hr", "pw", "HR_EDIT");
 
 	private FakeProjectRepository projects;
 	private FakeKeywordRepository keywords;

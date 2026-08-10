@@ -65,12 +65,11 @@ public class ProjectRestController {
 	public record ProjectRequest(String name, DbConnectionRequest rawConnection, DbConnectionRequest editConnection) {
 
 		CreateProjectCommand toCreateCommand() {
-			return new CreateProjectCommand(name, requireRaw());
+			return new CreateProjectCommand(name, requireRaw(), requireEdit());
 		}
 
 		UpdateProjectCommand toUpdateCommand(Long id) {
-			return new UpdateProjectCommand(id, name, requireRaw(),
-					editConnection == null ? null : editConnection.toDomain());
+			return new UpdateProjectCommand(id, name, requireRaw(), requireEdit());
 		}
 
 		private DbConnection requireRaw() {
@@ -78,6 +77,13 @@ public class ProjectRestController {
 				throw new IllegalArgumentException("원본(raw) 접속 정보가 필요합니다.");
 			}
 			return rawConnection.toDomain();
+		}
+
+		private DbConnection requireEdit() {
+			if (editConnection == null) {
+				throw new IllegalArgumentException("이관 대상(edit) 접속 정보가 필요합니다.");
+			}
+			return editConnection.toDomain();
 		}
 	}
 

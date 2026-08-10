@@ -10,9 +10,9 @@ import java.util.Objects;
  * 엔티티라 record가 아니라 클래스입니다. id로 식별되고, 생명주기 동안 이름과 접속 정보가 바뀝니다.
  * 동등성도 값 전체가 아니라 id로만 판단합니다.
  * <p>
- * 이관 대상({@code editConnection})은 선택값입니다. 프로젝트를 만드는 시점에는 아직 어떤 테이블을
- * 대상으로 할지 정해지지 않았으므로, 원본을 탐색한 뒤 이관을 실행할 때 정하면 됩니다.
- * 다만 값이 있다면 원본과 같은 스키마일 수 없습니다.
+ * 이관 대상({@code editConnection})은 필수입니다. 선택값으로 두면 NULL 분기가 도메인부터 화면까지
+ * 번지는데, 어차피 이관할 때 반드시 있어야 하는 값입니다. 계정이 아직 없어도 이름은 정할 수 있고,
+ * 그 이름으로 만들 SQL 을 도구가 알려줍니다. 다만 원본과 같은 스키마일 수는 없습니다.
  */
 @Getter
 public class Project {
@@ -27,8 +27,8 @@ public class Project {
 		assign(name, rawConnection, editConnection);
 	}
 
-	public static Project create(String name, DbConnection rawConnection) {
-		return new Project(null, name, rawConnection, null);
+	public static Project create(String name, DbConnection rawConnection, DbConnection editConnection) {
+		return new Project(null, name, rawConnection, editConnection);
 	}
 
 	/**
@@ -46,16 +46,15 @@ public class Project {
 		if (rawConnection == null) {
 			throw new IllegalArgumentException("원본(raw) 접속 정보가 필요합니다.");
 		}
+		if (editConnection == null) {
+			throw new IllegalArgumentException("이관 대상(edit) 접속 정보가 필요합니다.");
+		}
 		if (rawConnection.sameTarget(editConnection)) {
 			throw new IllegalArgumentException("원본(raw)과 이관 대상(edit)이 같은 스키마입니다. 원본을 덮어쓰게 되므로 사용할 수 없습니다.");
 		}
 		this.name = name.strip();
 		this.rawConnection = rawConnection;
 		this.editConnection = editConnection;
-	}
-
-	public boolean hasEditConnection() {
-		return editConnection != null;
 	}
 
 	/**

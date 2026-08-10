@@ -77,15 +77,15 @@ class ProjectMapperSqlTest {
 	}
 
 	@Test
-	void 이관_대상이_없으면_edit_바인딩은_null로_해석된다() {
-		Map<String, Object> params = insertParams(Project.create("원본만", RAW), null);
+	void 이관_대상은_필수라_null_로_들어가는_값이_없다() {
+		Map<String, Object> params = insertParams(Project.create("프로젝트", RAW, EDIT), "encrypted-edit");
 
 		List<Object> values = boundValues(params);
 
+		// id, name, raw 4개, edit 4개 = 10
 		assertThat(values).hasSize(10);
-		assertThat(values).contains(1L, "원본만", RAW.url(), "encrypted-raw");
-		// edit 관련 4개는 전부 null 이어야 합니다. (id, name, raw 4개, edit 4개 = 10)
-		assertThat(values.stream().filter(java.util.Objects::isNull)).hasSize(4);
+		assertThat(values).contains(1L, "프로젝트", RAW.url(), "encrypted-raw", EDIT.url(), "encrypted-edit");
+		assertThat(values).doesNotContainNull();
 	}
 
 	@Test

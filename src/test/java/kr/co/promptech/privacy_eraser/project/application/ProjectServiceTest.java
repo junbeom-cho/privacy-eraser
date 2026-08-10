@@ -35,7 +35,7 @@ class ProjectServiceTest {
 	}
 
 	private Long given원본만_가진_프로젝트(String name) {
-		return service.create(new CreateProjectCommand(name, RAW));
+		return service.create(new CreateProjectCommand(name, RAW, EDIT));
 	}
 
 	// ===== 생성 =====
@@ -46,14 +46,14 @@ class ProjectServiceTest {
 
 		assertThat(id).isEqualTo(1L);
 		assertThat(repository.saved).hasSize(1);
-		assertThat(repository.saved.get(0).hasEditConnection()).isFalse();
+		assertThat(repository.saved.get(0).getEditConnection()).isEqualTo(EDIT);
 	}
 
 	@Test
 	void 이름이_중복되면_저장하지_않는다() {
 		given원본만_가진_프로젝트("중복");
 
-		assertThatThrownBy(() -> service.create(new CreateProjectCommand("중복", RAW)))
+		assertThatThrownBy(() -> service.create(new CreateProjectCommand("중복", RAW, EDIT)))
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("이미 존재하는");
 		assertThat(repository.saved).hasSize(1);
@@ -131,7 +131,7 @@ class ProjectServiceTest {
 		service.update(new UpdateProjectCommand(id, "이름", RAW, EDIT));
 
 		Project updated = service.findById(id);
-		assertThat(updated.hasEditConnection()).isTrue();
+		assertThat(updated.getEditConnection()).isNotNull();
 		assertThat(updated.getEditConnection().schema()).isEqualTo("EDIT_SCHEMA");
 	}
 

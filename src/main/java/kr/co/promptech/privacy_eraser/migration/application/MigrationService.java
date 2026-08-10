@@ -60,9 +60,6 @@ public class MigrationService {
 	public Long start(Long projectId) {
 		Project project = projectRepository.findById(projectId)
 				.orElseThrow(() -> new ProjectNotFoundException(projectId));
-		if (!project.hasEditConnection()) {
-			throw new IllegalArgumentException("이관 대상 접속 정보를 먼저 등록하세요.");
-		}
 		if (runRepository.existsRunningByProjectId(projectId)) {
 			throw new IllegalArgumentException("이미 실행 중입니다. 끝난 뒤에 다시 시도하세요.");
 		}
@@ -99,9 +96,6 @@ public class MigrationService {
 	public String editSchemaScript(Long projectId) {
 		Project project = projectRepository.findById(projectId)
 				.orElseThrow(() -> new ProjectNotFoundException(projectId));
-		if (!project.hasEditConnection()) {
-			return "";
-		}
 		List<String> tables = schemaService.readTables(projectId).stream()
 				.map(TableMetadata::name)
 				.toList();

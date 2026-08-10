@@ -21,6 +21,7 @@ class SchemaServiceTest {
 
 	private static final String URL = "jdbc:oracle:thin:@localhost:1521/XE";
 	private static final DbConnection RAW = new DbConnection(URL, "hr", "pw", "HR");
+	private static final DbConnection EDIT = new DbConnection(URL, "hr", "pw", "EDIT_SCHEMA");
 
 	private FakeProjectRepository projects;
 	private FakeSchemaReader reader;
@@ -35,7 +36,7 @@ class SchemaServiceTest {
 
 	@Test
 	void 프로젝트의_원본_스키마를_읽는다() {
-		projects.saved.add(new Project(1L, "이름", RAW, null));
+		projects.saved.add(new Project(1L, "이름", RAW, EDIT));
 		reader.tables = List.of(new TableMetadata("EMPLOYEES",
 				List.of(ColumnMetadata.number("EMPLOYEE_ID", 6, 0, false))));
 
@@ -46,7 +47,7 @@ class SchemaServiceTest {
 
 	@Test
 	void 원본_접속정보로_읽는다() {
-		projects.saved.add(new Project(1L, "이름", RAW, null));
+		projects.saved.add(new Project(1L, "이름", RAW, EDIT));
 
 		service.readTables(1L);
 
@@ -62,7 +63,7 @@ class SchemaServiceTest {
 	@Test
 	void 원본_DB_조회에_실패하면_사유를_그대로_전한다() {
 		// 접속 정보가 틀린 것이므로 삼키지 않고 올려보내야 사용자가 고칠 수 있습니다.
-		projects.saved.add(new Project(1L, "이름", RAW, null));
+		projects.saved.add(new Project(1L, "이름", RAW, EDIT));
 		reader.failure = new IllegalStateException("ORA-01017: invalid credential");
 
 		assertThatThrownBy(() -> service.readTables(1L))
@@ -72,7 +73,7 @@ class SchemaServiceTest {
 
 	@Test
 	void 테이블이_하나도_없으면_빈_목록이다() {
-		projects.saved.add(new Project(1L, "이름", RAW, null));
+		projects.saved.add(new Project(1L, "이름", RAW, EDIT));
 		reader.tables = List.of();
 
 		assertThat(service.readTables(1L)).isEmpty();

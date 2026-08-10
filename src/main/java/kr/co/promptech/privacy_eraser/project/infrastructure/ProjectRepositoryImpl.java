@@ -57,6 +57,6 @@ public class ProjectRepositoryImpl implements ProjectRepository {
 
 	/** 이관 대상은 나중에 정할 수 있으므로 없을 수 있습니다. */
 	private String encryptEdit(Project project) {
-		return project.hasEditConnection() ? credentialCipher.encrypt(project.getEditConnection().password()) : null;
+		return credentialCipher.encrypt(project.getEditConnection().password());
 	}
 }
