@@ -88,6 +88,23 @@ DB만 띄우던 개발 방식과 데이터를 공유합니다.
 > Oracle을 도커로 띄우면 compose 프로젝트가 달라 네트워크도 분리됩니다. 같은 네트워크에 붙여야
 > 컨테이너 이름으로 서로를 찾습니다.
 
+#### Windows (Docker Desktop만 있는 PC)
+
+Node도 Java도 필요 없습니다. 빌드가 전부 컨테이너 안에서 일어나기 때문에, 소스와 Docker Desktop만
+있으면 됩니다. 레지스트리도 필요 없습니다.
+
+```powershell
+git clone git@github.com:junbeom-cho/privacy-protector.git
+cd privacy-protector
+copy .env.example .env
+docker compose up -d --build
+```
+
+`.env`의 `CREDENTIAL_SECRET`을 바꾸고 시작하세요. 이 값이 다르면 다른 PC에서 저장한 접속 정보를
+가져와도 복호화하지 못합니다. **DB를 함께 옮길 계획이면 두 PC의 값을 똑같이 맞춰야 합니다.**
+
+첫 빌드는 의존성을 받느라 몇 분 걸리고, 두 번째부터는 캐시가 걸려 빠릅니다.
+
 ### 테스트
 
 ```bash
