@@ -43,6 +43,8 @@ public class JdbcSchemaReader implements SchemaReader {
 			    ON c.owner = t.owner
 			   AND c.table_name = t.table_name
 			 WHERE t.owner = ?
+			   -- PURGE 없이 지운 테이블이 휴지통에 BIN$... 로 남습니다. 이관 대상이 아닙니다.
+			   AND t.table_name NOT LIKE 'BIN$%'
 			 ORDER BY t.table_name, c.column_id
 			""";
 

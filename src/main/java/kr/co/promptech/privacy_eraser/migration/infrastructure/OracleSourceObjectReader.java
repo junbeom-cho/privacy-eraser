@@ -58,6 +58,7 @@ public class OracleSourceObjectReader implements SourceObjectReader {
 			    ON r.owner = c.r_owner AND r.constraint_name = c.r_constraint_name
 			 WHERE c.owner = ?
 			   AND c.constraint_type IN ('P', 'U', 'R', 'C')
+			   AND c.table_name NOT LIKE 'BIN$%'
 			   AND (c.constraint_type != 'C' OR c.search_condition_vc NOT LIKE '%IS NOT NULL')
 			 GROUP BY c.table_name, c.constraint_name, c.constraint_type, c.search_condition_vc,
 			          r.table_name, c.delete_rule, c.r_owner, c.r_constraint_name
@@ -78,18 +79,26 @@ public class OracleSourceObjectReader implements SourceObjectReader {
 			    ON ic.index_owner = i.owner AND ic.index_name = i.index_name
 			 WHERE i.owner = ?
 			   AND i.index_type = 'NORMAL'
+			   AND i.table_name NOT LIKE 'BIN$%'
 			   AND NOT EXISTS (SELECT 1 FROM all_constraints c
 			                    WHERE c.owner = i.owner AND c.constraint_name = i.index_name)
 			 GROUP BY i.table_name, i.index_name, i.uniqueness
 			 ORDER BY i.table_name, i.index_name
 			""";
 
+	/**
+	 * {@code PURGE} 없이 지운 테이블은 휴지통에 {@code BIN$...} 이름으로 남습니다.
+	 * <p>
+	 * ALL_TABLES·ALL_INDEXES·ALL_CONSTRAINTS 는 이것을 걸러 주는데
+	 * <b>ALL_TAB_COMMENTS·ALL_COL_COMMENTS 는 걸러 주지 않습니다.</b>
+	 * 그대로 두면 이관 대상에 없는 {@code BIN$...} 에 코멘트를 달려다 ORA-00942 가 납니다.
+	 */
 	private static final String COMMENTS = """
 			SELECT table_name, NULL AS column_name, comments FROM all_tab_comments
-			 WHERE owner = ? AND comments IS NOT NULL
+			 WHERE owner = ? AND comments IS NOT NULL AND table_name NOT LIKE 'BIN$%'
 			UNION ALL
 			SELECT table_name, column_name, comments FROM all_col_comments
-			 WHERE owner = ? AND comments IS NOT NULL
+			 WHERE owner = ? AND comments IS NOT NULL AND table_name NOT LIKE 'BIN$%'
 			""";
 
 	private static final String SEQUENCES = """
