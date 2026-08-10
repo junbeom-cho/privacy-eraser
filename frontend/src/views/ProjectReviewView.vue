@@ -18,9 +18,6 @@ const route = useRoute()
 const projectId = Number(route.params.id)
 const project = inject<Ref<ProjectView | null>>('workspaceProject')
 
-// 이관은 이관 대상 접속 정보가 있어야 시작할 수 있습니다.
-const canMigrate = computed(() => Boolean(project?.value?.editConnection))
-
 const rows = ref<ColumnReviewView[]>([])
 const loading = ref(true)
 const error = ref('')
@@ -293,19 +290,11 @@ onMounted(load)
           충돌 {{ conflicts.length }}건을 먼저 해결하세요
         </span>
         <RouterLink
-          v-else-if="canMigrate"
+          v-else
           :to="`/projects/${projectId}/migration`"
           class="btn btn-outline-primary ms-auto text-nowrap"
         >
           다음 단계 · 이관 →
-        </RouterLink>
-        <RouterLink
-          v-else
-          :to="`/projects/${projectId}`"
-          class="btn btn-outline-secondary ms-auto text-nowrap"
-          title="이관하려면 이관 대상 접속 정보가 필요합니다."
-        >
-          이관 대상 접속 정보 등록 →
         </RouterLink>
       </div>
     </template>

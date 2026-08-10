@@ -13,13 +13,13 @@ class ProjectTest {
 	private static final DbConnection EDIT = new DbConnection(URL, "app", "pw", "EDIT_SCHEMA");
 
 	@Test
-	void 원본_접속정보만으로_생성한다() {
+	void 원본과_이관_대상을_함께_받아_생성한다() {
 		Project project = Project.create("고객정보 비식별화", RAW, EDIT);
 
 		assertThat(project.getId()).isNull();
 		assertThat(project.getName()).isEqualTo("고객정보 비식별화");
 		assertThat(project.getRawConnection()).isEqualTo(RAW);
-		assertThat(project.getEditConnection()).isNull();
+		assertThat(project.getEditConnection()).isEqualTo(EDIT);
 	}
 
 	@Test

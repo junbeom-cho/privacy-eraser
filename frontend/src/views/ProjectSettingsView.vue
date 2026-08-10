@@ -38,9 +38,7 @@ async function submit() {
   saved.value = false
   error.value = ''
   try {
-    // 스키마가 비어 있으면 이관 대상을 아직 정하지 않은 것으로 봅니다.
-    const edit = editConnection.schema.trim() ? editConnection : null
-    await updateProject(projectId, name.value, rawConnection, edit)
+    await updateProject(projectId, name.value, rawConnection, editConnection)
     saved.value = true
     await reloadWorkspace?.()
     // 스크립트는 저장된 이관 대상 기준이라, 저장할 때마다 다시 만듭니다.
@@ -102,7 +100,7 @@ async function copyScript() {
 
     <div v-if="loading" class="text-body-secondary small">불러오는 중</div>
 
-    <form v-else class="vstack gap-3" @submit.prevent="submit">
+    <form v-else class="vstack gap-3" @submit.prevent="saveAndNext">
       <div>
         <label class="form-label small">프로젝트 이름</label>
         <input v-model="name" class="form-control" required />
@@ -119,7 +117,7 @@ async function copyScript() {
       <DbConnectionFields
         v-model="editConnection"
         title="이관 대상 (edit_schema)"
-        hint="비식별화 결과가 저장됩니다. 스키마를 비워두면 아직 정하지 않은 것으로 둡니다."
+        hint="비식별화 결과가 저장됩니다. 계정이 아직 없어도 됩니다 — 아래에서 만드는 SQL을 알려줍니다."
         schema-placeholder="EDIT_SCHEMA"
         password-hint="비워두면 기존 비밀번호를 그대로 씁니다."
       />
@@ -156,14 +154,11 @@ async function copyScript() {
         </div>
       </details>
 
-      <div class="d-flex gap-2 justify-content-end">
-        <button type="submit" class="btn btn-outline-primary" :disabled="saving">
+      <!-- 저장만 하는 버튼은 두지 않습니다. 저장 없이 넘어갈 이유가 없어 한 동작으로 합칩니다. -->
+      <div class="d-flex justify-content-end">
+        <button type="submit" class="btn btn-primary" :disabled="saving">
           <span v-if="saving" class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>
-          {{ saving ? '저장 중' : '저장' }}
-        </button>
-        <!-- 저장하지 않고 넘어가면 입력한 값이 사라집니다. 이 버튼은 저장까지 합니다. -->
-        <button type="button" class="btn btn-primary" :disabled="saving" @click="saveAndNext">
-          저장하고 다음 단계 · 스키마 →
+          {{ saving ? '저장 중' : '저장하고 다음 단계 · 스키마 →' }}
         </button>
       </div>
     </form>

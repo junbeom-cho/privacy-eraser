@@ -106,7 +106,7 @@ class ProjectServiceTest {
 		Long id = given원본만_가진_프로젝트("옛이름");
 		DbConnection 새원본 = new DbConnection(URL, "newuser", "newpw", "NEW_SCHEMA");
 
-		service.update(new UpdateProjectCommand(id, "새이름", 새원본, null));
+		service.update(new UpdateProjectCommand(id, "새이름", 새원본, EDIT));
 
 		Project updated = service.findById(id);
 		assertThat(updated.getName()).isEqualTo("새이름");
@@ -119,7 +119,7 @@ class ProjectServiceTest {
 		Long id = given원본만_가진_프로젝트("이름");
 		DbConnection 비밀번호_없이 = new DbConnection(URL, "app", "", "RAW_SCHEMA");
 
-		service.update(new UpdateProjectCommand(id, "이름", 비밀번호_없이, null));
+		service.update(new UpdateProjectCommand(id, "이름", 비밀번호_없이, EDIT));
 
 		assertThat(service.findById(id).getRawConnection().password()).isEqualTo("pw");
 	}
@@ -149,7 +149,7 @@ class ProjectServiceTest {
 		given원본만_가진_프로젝트("먼저");
 		Long id = given원본만_가진_프로젝트("나중");
 
-		assertThatThrownBy(() -> service.update(new UpdateProjectCommand(id, "먼저", RAW, null)))
+		assertThatThrownBy(() -> service.update(new UpdateProjectCommand(id, "먼저", RAW, EDIT)))
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("이미 존재하는");
 	}
@@ -158,14 +158,14 @@ class ProjectServiceTest {
 	void 자기_이름_그대로_수정하는_것은_허용한다() {
 		Long id = given원본만_가진_프로젝트("그대로");
 
-		service.update(new UpdateProjectCommand(id, "그대로", RAW, null));
+		service.update(new UpdateProjectCommand(id, "그대로", RAW, EDIT));
 
 		assertThat(service.findById(id).getName()).isEqualTo("그대로");
 	}
 
 	@Test
 	void 없는_id를_수정하면_예외다() {
-		assertThatThrownBy(() -> service.update(new UpdateProjectCommand(999L, "이름", RAW, null)))
+		assertThatThrownBy(() -> service.update(new UpdateProjectCommand(999L, "이름", RAW, EDIT)))
 				.isInstanceOf(ProjectNotFoundException.class);
 	}
 

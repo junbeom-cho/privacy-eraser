@@ -126,15 +126,6 @@ class MigrationServiceTest {
 	}
 
 	@Test
-	void 이관_대상이_없으면_실행할_수_없다() {
-		projects.saved.set(0, new Project(1L, "프로젝트", RAW, null));
-
-		assertThatThrownBy(() -> service.start(1L))
-				.isInstanceOf(IllegalArgumentException.class)
-				.hasMessageContaining("이관 대상");
-	}
-
-	@Test
 	void 이미_실행_중이면_또_실행할_수_없다() {
 		runs.saved.add(new MigrationRun(99L, 1L, MigrationStatus.RUNNING, 0, 0, null, null, null, null));
 

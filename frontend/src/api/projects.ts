@@ -18,7 +18,7 @@ export interface ProjectView {
   id: number
   name: string
   rawConnection: ConnectionView
-  editConnection: ConnectionView | null
+  editConnection: ConnectionView
 }
 
 export interface ConnectionTestResult {
@@ -40,7 +40,7 @@ export function emptyConnection(): DbConnectionInput {
 }
 
 /** 조회 결과를 편집용으로 바꿉니다. 비밀번호는 받지 못하므로 빈 칸으로 둡니다. */
-export function toInput(connection: ConnectionView | null): DbConnectionInput {
+export function toInput(connection: ConnectionView | null | undefined): DbConnectionInput {
   if (!connection) return emptyConnection()
   return { url: connection.url, username: connection.username, password: '', schema: connection.schema }
 }
@@ -57,9 +57,16 @@ export function getProject(id: number) {
   return request<ProjectView>('GET', `/api/projects/${id}`)
 }
 
-/** 이관 대상(edit)은 생성 시점에 받지 않습니다. 비식별화를 실행할 때 정합니다. */
-export function createProject(name: string, rawConnection: DbConnectionInput) {
-  return request<{ id: number }>('POST', '/api/projects', { name, rawConnection })
+/**
+ * 이관 대상(edit)도 함께 받습니다. 어차피 이관할 때 반드시 있어야 하는 값이라,
+ * 선택값으로 두면 NULL 분기만 화면 전체로 번집니다. 계정이 아직 없어도 이름은 정할 수 있습니다.
+ */
+export function createProject(
+  name: string,
+  rawConnection: DbConnectionInput,
+  editConnection: DbConnectionInput,
+) {
+  return request<{ id: number }>('POST', '/api/projects', { name, rawConnection, editConnection })
 }
 
 /** 비밀번호를 비워 보내면 서버가 기존 값을 유지합니다. */
@@ -67,7 +74,7 @@ export function updateProject(
   id: number,
   name: string,
   rawConnection: DbConnectionInput,
-  editConnection: DbConnectionInput | null,
+  editConnection: DbConnectionInput,
 ) {
   return request<void>('PUT', `/api/projects/${id}`, { name, rawConnection, editConnection })
 }

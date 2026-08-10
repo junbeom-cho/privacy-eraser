@@ -71,10 +71,10 @@ const steps = computed(() => [
   {
     no: 5,
     name: '이관',
-    to: project.value?.editConnection ? `/projects/${projectId}/migration` : '',
+    to: `/projects/${projectId}/migration`,
     exact: false,
     badge: null,
-    blockedReason: '이관 대상 접속 정보를 먼저 등록하세요',
+    blockedReason: null,
   },
 ])
 
@@ -91,8 +91,7 @@ watch(() => route.fullPath, loadSummary)
       원본 <span class="font-mono">{{ project.rawConnection.schema }}</span>
       <span class="mx-1">→</span>
       이관 대상
-      <span v-if="project.editConnection" class="font-mono">{{ project.editConnection.schema }}</span>
-      <span v-else>미지정</span>
+      <span class="font-mono">{{ project.editConnection.schema }}</span>
     </p>
 
     <!-- 단계 표시줄. 잠긴 단계는 이유를 함께 보여줍니다. -->

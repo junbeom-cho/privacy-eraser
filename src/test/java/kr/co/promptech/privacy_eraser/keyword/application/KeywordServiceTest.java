@@ -37,7 +37,7 @@ class KeywordServiceTest {
 	void setUp() {
 		keywords = new FakeKeywordRepository();
 		projects = new FakeProjectRepository();
-		projects.saved.add(new Project(1L, "프로젝트", RAW, null));
+		projects.saved.add(new Project(1L, "프로젝트", RAW, EDIT));
 		service = new KeywordService(keywords, projects);
 	}
 
@@ -75,7 +75,7 @@ class KeywordServiceTest {
 
 	@Test
 	void 프로젝트가_다르면_같은_키워드를_쓸_수_있다() {
-		projects.saved.add(new Project(2L, "다른 프로젝트", RAW, null));
+		projects.saved.add(new Project(2L, "다른 프로젝트", RAW, EDIT));
 		service.create(new SaveKeywordCommand(1L, "phone", KeywordType.DO, 뒤_4자리));
 
 		service.create(new SaveKeywordCommand(2L, "phone", KeywordType.DO, 뒤_4자리));
@@ -86,7 +86,7 @@ class KeywordServiceTest {
 
 	@Test
 	void 프로젝트의_키워드만_돌려준다() {
-		projects.saved.add(new Project(2L, "다른 프로젝트", RAW, null));
+		projects.saved.add(new Project(2L, "다른 프로젝트", RAW, EDIT));
 		service.create(new SaveKeywordCommand(1L, "phone", KeywordType.DO, 뒤_4자리));
 		service.create(new SaveKeywordCommand(2L, "email", KeywordType.DO, 뒤_4자리));
 
@@ -127,7 +127,7 @@ class KeywordServiceTest {
 
 	@Test
 	void 다른_프로젝트의_키워드는_수정할_수_없다() {
-		projects.saved.add(new Project(2L, "다른 프로젝트", RAW, null));
+		projects.saved.add(new Project(2L, "다른 프로젝트", RAW, EDIT));
 		Long id = service.create(new SaveKeywordCommand(1L, "phone", KeywordType.DO, 뒤_4자리));
 
 		assertThatThrownBy(() -> service.update(2L, id, new SaveKeywordCommand(2L, "email", KeywordType.DO, 뒤_4자리)))
@@ -145,7 +145,7 @@ class KeywordServiceTest {
 
 	@Test
 	void 다른_프로젝트의_키워드는_삭제할_수_없다() {
-		projects.saved.add(new Project(2L, "다른 프로젝트", RAW, null));
+		projects.saved.add(new Project(2L, "다른 프로젝트", RAW, EDIT));
 		Long id = service.create(new SaveKeywordCommand(1L, "phone", KeywordType.DO, 뒤_4자리));
 
 		assertThatThrownBy(() -> service.delete(2L, id))

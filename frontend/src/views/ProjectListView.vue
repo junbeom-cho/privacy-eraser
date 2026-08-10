@@ -99,10 +99,9 @@ onMounted(load)
               </td>
               <td><span class="badge text-bg-secondary font-mono">{{ project.rawConnection.schema }}</span></td>
               <td>
-                <span v-if="project.editConnection" class="badge text-bg-secondary font-mono">
+                <span class="badge text-bg-secondary font-mono">
                   {{ project.editConnection.schema }}
                 </span>
-                <span v-else class="text-body-secondary small">미지정</span>
               </td>
               <td class="text-end">
                 <button type="button" class="btn btn-sm btn-outline-danger" @click="target = project">

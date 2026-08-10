@@ -42,7 +42,8 @@ class ProjectRestControllerTest {
 	private static final String CREATE_BODY = """
 			{
 			  "name": "고객정보 비식별화",
-			  "rawConnection": {"url":"jdbc:oracle:thin:@localhost:1521/XE","username":"app","password":"pw","schema":"RAW_SCHEMA"}
+			  "rawConnection": {"url":"jdbc:oracle:thin:@localhost:1521/XE","username":"app","password":"pw","schema":"RAW_SCHEMA"},
+			  "editConnection": {"url":"jdbc:oracle:thin:@localhost:1521/XE","username":"app","password":"pw","schema":"EDIT_SCHEMA"}
 			}
 			""";
 
@@ -55,7 +56,7 @@ class ProjectRestControllerTest {
 	// ===== 생성 =====
 
 	@Test
-	void 원본_접속정보만으로_생성하면_201과_id를_돌려준다() throws Exception {
+	void 원본과_이관_대상을_주면_201과_id를_돌려준다() throws Exception {
 		given(projectService.create(any(CreateProjectCommand.class))).willReturn(7L);
 
 		mockMvc.perform(post("/api/projects").contentType(MediaType.APPLICATION_JSON).content(CREATE_BODY))
@@ -87,7 +88,7 @@ class ProjectRestControllerTest {
 	@Test
 	void 목록을_돌려준다() throws Exception {
 		given(projectService.findAll()).willReturn(List.of(
-				new Project(1L, "첫번째", RAW, null),
+				new Project(1L, "첫번째", RAW, EDIT),
 				new Project(2L, "두번째", RAW, EDIT)));
 
 		mockMvc.perform(get("/api/projects"))
@@ -95,7 +96,7 @@ class ProjectRestControllerTest {
 				.andExpect(jsonPath("$.length()").value(2))
 				.andExpect(jsonPath("$[0].name").value("첫번째"))
 				.andExpect(jsonPath("$[0].rawConnection.schema").value("RAW_SCHEMA"))
-				.andExpect(jsonPath("$[0].editConnection").doesNotExist())
+				.andExpect(jsonPath("$[0].editConnection.schema").value("EDIT_SCHEMA"))
 				.andExpect(jsonPath("$[1].editConnection.schema").value("EDIT_SCHEMA"));
 	}
 
@@ -111,7 +112,7 @@ class ProjectRestControllerTest {
 
 	@Test
 	void 단건을_돌려준다() throws Exception {
-		given(projectService.findById(1L)).willReturn(new Project(1L, "이름", RAW, null));
+		given(projectService.findById(1L)).willReturn(new Project(1L, "이름", RAW, EDIT));
 
 		mockMvc.perform(get("/api/projects/1"))
 				.andExpect(status().isOk())
@@ -207,7 +208,8 @@ class ProjectRestControllerTest {
 		mockMvc.perform(post("/api/projects").contentType(MediaType.APPLICATION_JSON).content("""
 						{
 						  "name": "이름",
-						  "rawConnection": {"url":"oracle://localhost","username":"app","password":"pw","schema":"RAW"}
+						  "rawConnection": {"url":"oracle://localhost","username":"app","password":"pw","schema":"RAW"},
+						  "editConnection": {"url":"oracle://localhost","username":"app","password":"pw","schema":"EDIT"}
 						}
 						"""))
 				.andExpect(status().isBadRequest());

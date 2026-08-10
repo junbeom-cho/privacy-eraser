@@ -51,7 +51,7 @@ class ReviewServiceTest {
 		overrides = new FakeOverrideRepository();
 		reader = new FakeSchemaReader();
 		samples = new FakeSampleReader();
-		projects.saved.add(new Project(1L, "프로젝트", RAW, null));
+		projects.saved.add(new Project(1L, "프로젝트", RAW, EDIT));
 		reader.tables = List.of(new TableMetadata("EMPLOYEES", List.of(
 				ColumnMetadata.number("EMPLOYEE_ID", 6, 0, false),
 				ColumnMetadata.character("PHONE_NUMBER", "VARCHAR2", 20, true),
