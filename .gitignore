@@ -5,6 +5,9 @@ src/main/resources/static/
 !**/src/main/**/target/
 !**/src/test/**/target/
 .DS_Store
+infra/oracle/sample/
+!infra/oracle/sample/.gitkeep
+
 
 ### STS ###
 .apt_generated
