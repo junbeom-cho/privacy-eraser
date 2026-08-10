@@ -2,6 +2,7 @@
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import DbConnectionFields from '@/components/DbConnectionFields.vue'
+import EditSchemaScriptCard from '@/components/EditSchemaScriptCard.vue'
 import { createProject, emptyConnection } from '@/api/projects'
 
 const router = useRouter()
@@ -58,6 +59,8 @@ async function submit() {
         hint="비식별화 결과가 저장됩니다. 원본과 같은 스키마는 쓸 수 없습니다."
         schema-placeholder="EDIT_SCHEMA"
       />
+
+      <EditSchemaScriptCard />
 
       <div class="d-flex gap-2">
         <button type="submit" class="btn btn-primary" :disabled="saving">

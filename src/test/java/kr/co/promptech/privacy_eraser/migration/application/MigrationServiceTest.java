@@ -21,7 +21,6 @@ import kr.co.promptech.privacy_eraser.project.domain.ProjectRepository;
 import kr.co.promptech.privacy_eraser.review.application.ReviewService;
 import kr.co.promptech.privacy_eraser.review.domain.ColumnReview;
 import kr.co.promptech.privacy_eraser.review.domain.MaskingDecision;
-import kr.co.promptech.privacy_eraser.schema.application.SchemaService;
 import kr.co.promptech.privacy_eraser.schema.domain.ColumnMetadata;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -63,8 +62,7 @@ class MigrationServiceTest {
 				review("EMPLOYEES", "PHONE_NUMBER", 뒤_4자리),
 				review("DEPARTMENTS", "DEPARTMENT_ID", null)));
 		// 테스트에서는 같은 스레드에서 돌려 결과를 바로 확인합니다.
-		service = new MigrationService(projects, runs, executor, reviewService, source,
-				Mockito.mock(SchemaService.class), Runnable::run);
+		service = new MigrationService(projects, runs, executor, reviewService, source, Runnable::run);
 	}
 
 	private static ColumnReview review(String table, String column, MaskingPolicy policy) {

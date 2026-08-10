@@ -43,19 +43,7 @@ public class MigrationRestController {
 				.orElse(null);
 	}
 
-	/**
-	 * 이관 대상 스키마를 만드는 SQL 입니다. 도구는 실행하지 않습니다.
-	 * 접속 비밀번호는 들어가지 않습니다 - 자리표시자로 나갑니다.
-	 */
-	@GetMapping("/setup-script")
-	public SetupScriptResponse setupScript(@PathVariable Long projectId) {
-		return new SetupScriptResponse(migrationService.editSchemaScript(projectId));
-	}
-
 	public record StartedResponse(Long runId) {
-	}
-
-	public record SetupScriptResponse(String script) {
 	}
 
 	/**
