@@ -53,20 +53,20 @@ const steps = computed(() => [
   },
   {
     no: 3,
-    name: '키워드',
-    to: `/projects/${projectId}/keywords`,
+    name: '대상 지정',
+    to: `/projects/${projectId}/target`,
     exact: false,
-    badge: keywordCount.value > 0 ? `${keywordCount.value}` : null,
+    badge: keywordCount.value > 0 ? `키워드 ${keywordCount.value}` : null,
     blockedReason: null,
   },
   {
     no: 4,
     name: '검수',
-    // 키워드가 없으면 전부 비대상으로만 나와 볼 것이 없습니다.
-    to: keywordCount.value > 0 ? `/projects/${projectId}/review` : '',
+    // 엑셀로만 지정할 수도 있어 키워드 수로 막지 않습니다.
+    to: `/projects/${projectId}/review`,
     exact: false,
     badge: null,
-    blockedReason: '키워드를 먼저 등록하세요',
+    blockedReason: null,
   },
   {
     no: 5,

@@ -30,6 +30,17 @@ const router = createRouter({
           component: () => import('@/views/ProjectSchemaView.vue'),
         },
         {
+          // 스키마를 본 뒤 대상을 어떻게 정할지 고르는 갈림길입니다.
+          path: 'target',
+          name: 'project-target',
+          component: () => import('@/views/ProjectTargetView.vue'),
+        },
+        {
+          path: 'target/excel',
+          name: 'project-target-excel',
+          component: () => import('@/views/ProjectExcelView.vue'),
+        },
+        {
           path: 'keywords',
           name: 'project-keywords',
           component: () => import('@/views/ProjectKeywordsView.vue'),

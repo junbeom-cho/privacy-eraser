@@ -129,7 +129,12 @@ onMounted(load)
 
 <template>
   <div>
-    <h2 class="h6 mb-3">3. 키워드 · 정책</h2>
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <h2 class="h6 mb-0">3. 대상 지정 · 키워드</h2>
+      <RouterLink :to="`/projects/${projectId}/target`" class="btn btn-sm btn-link p-0">
+        ← 방법 다시 고르기
+      </RouterLink>
+    </div>
 
     <div class="alert alert-secondary small">
       컬럼명을 <code>_</code> 로 나눈 토큰이 키워드와 맞으면 마스킹 대상이 됩니다. 대소문자는 구분하지 않습니다.

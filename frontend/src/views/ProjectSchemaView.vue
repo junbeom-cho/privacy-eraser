@@ -131,8 +131,8 @@ onMounted(load)
           토큰은 컬럼명을 <code>_</code> 로 나눈 것입니다. 키워드를 이 토큰과 대조해 마스킹 대상을 정합니다.
           <strong>PK·UQ</strong> 컬럼은 값이 겹치면 안 되므로 마스킹할 수 없습니다.
         </p>
-        <RouterLink :to="`/projects/${id}/keywords`" class="btn btn-outline-primary ms-auto text-nowrap">
-          다음 단계 · 키워드 →
+        <RouterLink :to="`/projects/${id}/target`" class="btn btn-outline-primary ms-auto text-nowrap">
+          다음 단계 · 대상 지정 →
         </RouterLink>
       </div>
     </template>
