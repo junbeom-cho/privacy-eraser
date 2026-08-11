@@ -79,6 +79,7 @@ onMounted(async () => {
             </p>
             <ul class="text-body-secondary small mb-3 ps-3">
               <li>컬럼이 늘어도 규칙이 그대로 적용됩니다</li>
+              <li><code>OWNR_BMNO</code> 처럼 컬럼명 전체를 적어 좁힐 수도 있습니다</li>
               <li>의도한 것보다 많이 걸릴 수 있어 검수가 필요합니다</li>
             </ul>
             <span class="btn btn-sm btn-outline-primary">키워드 설정하러 가기 →</span>

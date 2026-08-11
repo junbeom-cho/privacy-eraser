@@ -6,6 +6,7 @@ import kr.co.promptech.privacy_eraser.schema.domain.ColumnMetadata;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 
@@ -49,20 +50,33 @@ public class KeywordJudge {
 	}
 
 	public MaskingDecision judge(ColumnMetadata column) {
-		Set<String> tokens = Set.copyOf(column.tokens());
-
 		// Undo 가 먼저입니다. Do 에도 걸렸는지는 볼 필요가 없습니다.
-		Optional<Keyword> excluded = firstMatch(undoKeywords, tokens);
+		Optional<Keyword> excluded = firstMatch(undoKeywords, column);
 		if (excluded.isPresent()) {
 			return MaskingDecision.byUndoKeyword(excluded.get().getWord());
 		}
 
-		return firstMatch(doKeywords, tokens)
+		return firstMatch(doKeywords, column)
 				.map(keyword -> MaskingDecision.byDoKeyword(keyword.getWord(), keyword.getPolicy()))
 				.orElseGet(MaskingDecision::notMasked);
 	}
 
-	private static Optional<Keyword> firstMatch(List<Keyword> keywords, Set<String> tokens) {
-		return keywords.stream().filter(keyword -> tokens.contains(keyword.getWord())).findFirst();
+	private static Optional<Keyword> firstMatch(List<Keyword> keywords, ColumnMetadata column) {
+		Set<String> tokens = Set.copyOf(column.tokens());
+		String fullName = column.name().toLowerCase(Locale.ROOT);
+		return keywords.stream().filter(keyword -> matches(keyword, tokens, fullName)).findFirst();
+	}
+
+	/**
+	 * 토큰 하나와 맞거나, <b>컬럼명 전체</b>와 맞으면 걸립니다.
+	 * <p>
+	 * `OWNR_BMNO` 같은 이름은 토큰으로 쪼개면 `ownr` 과 `bmno` 라, 컬럼명을 통째로 적어도
+	 * 아무것도 안 걸렸습니다. 이름이 겹치는 다른 컬럼까지 딸려오는 것을 피하려면 통째로 지정할 수
+	 * 있어야 합니다.
+	 * <p>
+	 * 부분 일치는 하지 않습니다. `ownr_bm` 이 `OWNR_BMNO` 에 걸리면 의도치 않은 컬럼이 따라옵니다.
+	 */
+	private static boolean matches(Keyword keyword, Set<String> tokens, String fullName) {
+		return tokens.contains(keyword.getWord()) || fullName.equals(keyword.getWord());
 	}
 }

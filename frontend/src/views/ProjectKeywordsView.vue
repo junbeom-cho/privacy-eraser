@@ -137,7 +137,9 @@ onMounted(load)
     </div>
 
     <div class="alert alert-secondary small">
-      컬럼명을 <code>_</code> 로 나눈 토큰이 키워드와 맞으면 마스킹 대상이 됩니다. 대소문자는 구분하지 않습니다.
+      컬럼명을 <code>_</code> 로 나눈 토큰이 키워드와 맞으면 마스킹 대상이 됩니다.
+      <strong>컬럼명 전체를 그대로 적어도 됩니다</strong> — <code>OWNR_BMNO</code> 처럼 적으면
+      그 이름을 가진 컬럼만 걸립니다. 대소문자는 구분하지 않습니다.
       <strong>Undo 가 우선입니다</strong> — Do 와 Undo 에 함께 걸리면 마스킹에서 제외합니다.
     </div>
 
@@ -157,7 +159,7 @@ onMounted(load)
         <form class="row g-3 align-items-end" @submit.prevent="submit">
           <div class="col-md-3">
             <label class="form-label small">키워드</label>
-            <input v-model="form.word" class="form-control font-mono" required placeholder="phone" />
+            <input v-model="form.word" class="form-control font-mono" required placeholder="phone 또는 OWNR_BMNO" />
           </div>
 
           <div class="col-md-3">

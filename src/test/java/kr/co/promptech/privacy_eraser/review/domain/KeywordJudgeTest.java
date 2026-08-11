@@ -123,4 +123,58 @@ class KeywordJudgeTest {
 
 		assertThat(decision.source()).isEqualTo(DecisionSource.DO_KEYWORD);
 	}
+
+	// ===== 컬럼명 전체로 지정 =====
+
+	@Test
+	void 컬럼명_전체를_키워드로_넣으면_그_컬럼이_걸린다() {
+		// 토큰으로 쪼개면 ownr, bmno 라 컬럼명 전체는 지금까지 아무것도 안 걸렸습니다.
+		KeywordJudge judge = new KeywordJudge(List.of(Keyword.markFor(1L, "OWNR_BMNO", 뒤_4자리)));
+
+		MaskingDecision decision = judge.judge(column("OWNR_BMNO"));
+
+		assertThat(decision.masked()).isTrue();
+		assertThat(decision.matchedKeyword()).isEqualTo("ownr_bmno");
+	}
+
+	@Test
+	void 컬럼명_전체는_다른_컬럼에_걸리지_않는다() {
+		KeywordJudge judge = new KeywordJudge(List.of(Keyword.markFor(1L, "OWNR_BMNO", 뒤_4자리)));
+
+		assertThat(judge.judge(column("NEW_BMNO")).masked()).isFalse();
+		assertThat(judge.judge(column("OWNR_NM")).masked()).isFalse();
+	}
+
+	@Test
+	void 컬럼명_일부만_적으면_걸리지_않는다() {
+		// 토큰 경계를 무시하고 부분 일치시키면 의도치 않은 컬럼이 딸려옵니다.
+		KeywordJudge judge = new KeywordJudge(List.of(Keyword.markFor(1L, "ownr_bm", 뒤_4자리)));
+
+		assertThat(judge.judge(column("OWNR_BMNO")).masked()).isFalse();
+	}
+
+	@Test
+	void 컬럼명_전체가_토큰보다_우선한다() {
+		// 더 구체적인 쪽이 이깁니다. 길이 비교로 자연히 그렇게 됩니다.
+		KeywordJudge judge = new KeywordJudge(List.of(Keyword.markFor(1L, "bmno", 뒤_4자리), Keyword.markFor(1L, "OWNR_BMNO", 뒤_4자리)));
+
+		assertThat(judge.judge(column("OWNR_BMNO")).matchedKeyword()).isEqualTo("ownr_bmno");
+	}
+
+	@Test
+	void 컬럼명_전체로도_제외할_수_있다() {
+		KeywordJudge judge = new KeywordJudge(List.of(Keyword.markFor(1L, "bmno", 뒤_4자리), Keyword.skipFor(1L, "OWNR_BMNO")));
+
+		MaskingDecision decision = judge.judge(column("OWNR_BMNO"));
+
+		assertThat(decision.masked()).isFalse();
+		assertThat(decision.matchedKeyword()).isEqualTo("ownr_bmno");
+	}
+
+	@Test
+	void 컬럼명_전체는_대소문자를_구분하지_않는다() {
+		KeywordJudge judge = new KeywordJudge(List.of(Keyword.markFor(1L, "ownr_bmno", 뒤_4자리)));
+
+		assertThat(judge.judge(column("OWNR_BMNO")).masked()).isTrue();
+	}
 }
