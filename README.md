@@ -145,5 +145,6 @@ DB 없이 전부 돕니다. 매퍼 XML까지 `BoundSql`로 바인딩을 검증�
 | 문서 | 내용 |
 |---|---|
 | [docs/PRD.md](docs/PRD.md) | 요구사항입니다. 충돌하면 이 문서가 우선합니다 |
+| [docs/adr/](docs/adr/) | ADR 입니다. 다르게 갈 수도 있었던 갈림길과 그 이유를 건별로 기록합니다 |
 | [AGENTS.md](AGENTS.md) | 개발 규칙입니다. 아키텍처·TDD·보안·함정을 모아뒀습니다 |
 | [CLAUDE.md](CLAUDE.md) | AI 도구용 진입점입니다 (AGENTS.md를 가리킵니다) |
