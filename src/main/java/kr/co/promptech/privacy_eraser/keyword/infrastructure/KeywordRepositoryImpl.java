@@ -27,6 +27,11 @@ public class KeywordRepositoryImpl implements KeywordRepository {
 	}
 
 	@Override
+	public int deleteAllByProjectId(Long projectId) {
+		return keywordMapper.deleteAllByProjectId(projectId);
+	}
+
+	@Override
 	public void deleteById(Long id) {
 		keywordMapper.deleteById(id);
 	}

@@ -17,6 +17,8 @@ public interface KeywordMapper {
 
 	void deleteById(@Param("id") Long id);
 
+	int deleteAllByProjectId(@Param("projectId") Long projectId);
+
 	List<KeywordRow> findAllByProjectId(@Param("projectId") Long projectId);
 
 	KeywordRow findById(@Param("id") Long id);

@@ -47,6 +47,11 @@ export function updateKeyword(projectId: number, keywordId: number, keyword: Key
   return request<void>('PUT', `/api/projects/${projectId}/keywords/${keywordId}`, keyword)
 }
 
+/** 프로젝트의 키워드를 전부 지웁니다. 되돌릴 수 없습니다. */
+export function deleteAllKeywords(projectId: number) {
+  return request<void>('DELETE', `/api/projects/${projectId}/keywords`)
+}
+
 export function deleteKeyword(projectId: number, keywordId: number) {
   return request<void>('DELETE', `/api/projects/${projectId}/keywords/${keywordId}`)
 }

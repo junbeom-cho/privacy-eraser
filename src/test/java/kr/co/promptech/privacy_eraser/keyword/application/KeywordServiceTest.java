@@ -176,6 +176,13 @@ class KeywordServiceTest {
 		}
 
 		@Override
+		public int deleteAllByProjectId(Long projectId) {
+			int before = saved.size();
+			saved.removeIf(keyword -> keyword.getProjectId().equals(projectId));
+			return before - saved.size();
+		}
+
+		@Override
 		public List<Keyword> findAllByProjectId(Long projectId) {
 			return saved.stream().filter(k -> k.getProjectId().equals(projectId)).toList();
 		}
@@ -224,5 +231,33 @@ class KeywordServiceTest {
 		public boolean existsByName(String name) {
 			return false;
 		}
+	}
+
+	@Test
+	void 프로젝트의_키워드를_전부_지운다() {
+		service.create(new SaveKeywordCommand(1L, "name", KeywordType.DO, 뒤_4자리));
+		service.create(new SaveKeywordCommand(1L, "phone", KeywordType.DO, 뒤_4자리));
+
+		service.deleteAll(1L);
+
+		assertThat(service.findAll(1L)).isEmpty();
+	}
+
+	@Test
+	void 전체_삭제는_다른_프로젝트를_건드리지_않는다() {
+		projects.saved.add(new Project(2L, "다른 프로젝트", RAW, EDIT));
+		service.create(new SaveKeywordCommand(1L, "name", KeywordType.DO, 뒤_4자리));
+		service.create(new SaveKeywordCommand(2L, "name", KeywordType.DO, 뒤_4자리));
+
+		service.deleteAll(1L);
+
+		assertThat(service.findAll(1L)).isEmpty();
+		assertThat(service.findAll(2L)).hasSize(1);
+	}
+
+	@Test
+	void 없는_프로젝트는_전체_삭제할_수_없다() {
+		assertThatThrownBy(() -> service.deleteAll(999L))
+				.isInstanceOf(ProjectNotFoundException.class);
 	}
 }

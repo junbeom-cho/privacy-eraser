@@ -50,6 +50,10 @@
 		WHERE keyword_id = #{keyword.id}
 	</update>
 
+	<delete id="deleteAllByProjectId">
+		DELETE FROM keyword WHERE project_id = #{projectId}
+	</delete>
+
 	<delete id="deleteById">
 		DELETE FROM keyword WHERE keyword_id = #{id}
 	</delete>

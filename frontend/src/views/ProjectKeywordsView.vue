@@ -5,6 +5,7 @@ import ConfirmModal from '@/components/ConfirmModal.vue'
 import { messageOf } from '@/api/http'
 import {
   createKeyword,
+  deleteAllKeywords,
   deleteKeyword,
   describePolicy,
   emptyKeyword,
@@ -80,6 +81,28 @@ async function submit() {
     error.value = messageOf(e, '저장하지 못했습니다.')
   } finally {
     saving.value = false
+  }
+}
+
+// 전체 삭제는 되돌릴 수 없어 목록과 별개로 확인을 받습니다.
+const confirmingDeleteAll = ref(false)
+const deletingAll = ref(false)
+
+async function confirmDeleteAll() {
+  deletingAll.value = true
+  error.value = ''
+  try {
+    const count = keywords.value.length
+    await deleteAllKeywords(projectId)
+    notice.value = `키워드 ${count}개를 모두 삭제했습니다.`
+    resetForm()
+    keywords.value = await listKeywords(projectId)
+    await reloadWorkspace?.()
+  } catch (e) {
+    error.value = messageOf(e, '삭제하지 못했습니다.')
+  } finally {
+    deletingAll.value = false
+    confirmingDeleteAll.value = false
   }
 }
 
@@ -222,11 +245,32 @@ onMounted(load)
       </div>
     </template>
 
-    <div v-if="keywords.length > 0" class="d-flex justify-content-end mt-3">
-      <RouterLink :to="`/projects/${projectId}/review`" class="btn btn-outline-primary">
+    <div v-if="keywords.length > 0" class="d-flex align-items-center mt-3">
+      <!-- 되돌릴 수 없는 동작이라 다음 단계 버튼과 떨어뜨려 둡니다. -->
+      <button type="button" class="btn btn-outline-danger btn-sm" @click="confirmingDeleteAll = true">
+        전체 삭제
+      </button>
+      <RouterLink :to="`/projects/${projectId}/review`" class="btn btn-outline-primary ms-auto">
         다음 단계 · 검수 →
       </RouterLink>
     </div>
+
+    <ConfirmModal
+      v-if="confirmingDeleteAll"
+      title="키워드 전체 삭제"
+      confirm-label="전체 삭제"
+      :busy="deletingAll"
+      @confirm="confirmDeleteAll"
+      @cancel="confirmingDeleteAll = false"
+    >
+      <p class="mb-2">
+        키워드 <strong>{{ keywords.length }}개</strong>를 모두 삭제합니다. 되돌릴 수 없습니다.
+      </p>
+      <p class="text-body-secondary small mb-0">
+        검수 판정은 전부 미매칭이 됩니다. 다만 검수 화면에서 <strong>직접 지정한 컬럼은
+        그대로 남습니다.</strong>
+      </p>
+    </ConfirmModal>
 
     <ConfirmModal
       v-if="target"

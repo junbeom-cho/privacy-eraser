@@ -49,6 +49,20 @@ public class KeywordService {
 		keywordRepository.deleteById(keywordId);
 	}
 
+	/**
+	 * 프로젝트의 키워드를 전부 지웁니다. 되돌릴 수 없으므로 화면에서 확인을 받습니다.
+	 * <p>
+	 * 키워드가 없어지면 검수 판정도 전부 미매칭이 됩니다. 다만 사람이 직접 지정한 컬럼은
+	 * 별도로 저장되어 살아남습니다.
+	 *
+	 * @return 지운 개수
+	 */
+	@Transactional
+	public int deleteAll(Long projectId) {
+		requireProject(projectId);
+		return keywordRepository.deleteAllByProjectId(projectId);
+	}
+
 	private void requireProject(Long projectId) {
 		if (projectRepository.findById(projectId).isEmpty()) {
 			throw new ProjectNotFoundException(projectId);

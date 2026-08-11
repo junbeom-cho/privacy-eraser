@@ -48,6 +48,15 @@ public class KeywordRestController {
 		keywordService.update(projectId, keywordId, request.toCommand(projectId));
 	}
 
+	/**
+	 * 프로젝트의 키워드를 전부 지웁니다. 되돌릴 수 없습니다.
+	 */
+	@DeleteMapping
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void deleteAll(@PathVariable Long projectId) {
+		keywordService.deleteAll(projectId);
+	}
+
 	@DeleteMapping("/{keywordId}")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void delete(@PathVariable Long projectId, @PathVariable Long keywordId) {

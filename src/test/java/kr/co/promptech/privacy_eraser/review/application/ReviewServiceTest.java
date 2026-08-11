@@ -266,6 +266,13 @@ class ReviewServiceTest {
 		private final List<Keyword> saved = new ArrayList<>();
 
 		@Override
+		public int deleteAllByProjectId(Long projectId) {
+			int before = saved.size();
+			saved.removeIf(keyword -> keyword.getProjectId().equals(projectId));
+			return before - saved.size();
+		}
+
+		@Override
 		public List<Keyword> findAllByProjectId(Long projectId) {
 			return List.copyOf(saved);
 		}
