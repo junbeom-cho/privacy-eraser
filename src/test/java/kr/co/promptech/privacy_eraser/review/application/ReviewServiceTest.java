@@ -8,6 +8,8 @@ import kr.co.promptech.privacy_eraser.project.domain.DbConnection;
 import kr.co.promptech.privacy_eraser.project.domain.Project;
 import kr.co.promptech.privacy_eraser.project.domain.ProjectNotFoundException;
 import kr.co.promptech.privacy_eraser.project.domain.ProjectRepository;
+import kr.co.promptech.privacy_eraser.review.application.ReviewService.ApplySheetResult;
+import kr.co.promptech.privacy_eraser.review.domain.ColumnDecision;
 import kr.co.promptech.privacy_eraser.review.domain.ColumnOverride;
 import kr.co.promptech.privacy_eraser.review.domain.ColumnOverrideRepository;
 import kr.co.promptech.privacy_eraser.review.domain.ColumnReview;
@@ -56,7 +58,8 @@ class ReviewServiceTest {
 				ColumnMetadata.number("EMPLOYEE_ID", 6, 0, false),
 				ColumnMetadata.character("PHONE_NUMBER", "VARCHAR2", 20, true),
 				ColumnMetadata.number("SALARY", 8, 2, true))));
-		service = new ReviewService(projects, keywords, overrides, reader, samples);
+		service = new ReviewService(projects, keywords, overrides, reader, samples,
+				new kr.co.promptech.privacy_eraser.review.infrastructure.ExcelColumnDecisionSheet());
 	}
 
 	private ColumnReview reviewOf(String columnName) {
@@ -357,5 +360,68 @@ class ReviewServiceTest {
 		public List<TableMetadata> readTables(DbConnection connection) {
 			return tables;
 		}
+	}
+
+	// ===== 컬럼 정의서 업로드 =====
+
+	@Test
+	void 정의서에_적힌_조합만_사용자_지정으로_반영한다() {
+		ApplySheetResult result = service.applyDecisions(1L, List.of(
+				new ColumnDecision("EMPLOYEES", "PHONE_NUMBER", true, 뒤_4자리)));
+
+		assertThat(result.applied()).isEqualTo(1);
+		assertThat(result.errors()).isEmpty();
+		ColumnReview phone = find(service.review(1L), "PHONE_NUMBER");
+		assertThat(phone.decision().source()).isEqualTo(DecisionSource.USER);
+		assertThat(phone.decision().policy()).isEqualTo(뒤_4자리);
+	}
+
+	@Test
+	void 정의서에_없는_컬럼은_건드리지_않는다() {
+		service.applyDecisions(1L, List.of(new ColumnDecision("EMPLOYEES", "PHONE_NUMBER", true, 뒤_4자리)));
+
+		assertThat(find(service.review(1L), "SALARY").decision().source()).isNotEqualTo(DecisionSource.USER);
+	}
+
+	@Test
+	void 원본에_없는_테이블이나_컬럼은_사유와_함께_알린다() {
+		ApplySheetResult result = service.applyDecisions(1L, List.of(
+				new ColumnDecision("EMPLOYEES", "없는컬럼", true, 뒤_4자리),
+				new ColumnDecision("없는테이블", "PHONE_NUMBER", true, 뒤_4자리)));
+
+		assertThat(result.applied()).isZero();
+		assertThat(result.errors()).hasSize(2);
+		assertThat(result.errors().get(0)).contains("EMPLOYEES").contains("없는컬럼");
+	}
+
+	@Test
+	void 일부가_틀려도_맞는_줄은_반영한다() {
+		ApplySheetResult result = service.applyDecisions(1L, List.of(
+				new ColumnDecision("EMPLOYEES", "PHONE_NUMBER", true, 뒤_4자리),
+				new ColumnDecision("EMPLOYEES", "없는컬럼", false, null)));
+
+		assertThat(result.applied()).isEqualTo(1);
+		assertThat(result.errors()).hasSize(1);
+	}
+
+	@Test
+	void 같은_컬럼을_다시_올리면_덮어쓴다() {
+		service.applyDecisions(1L, List.of(new ColumnDecision("EMPLOYEES", "PHONE_NUMBER", true, 뒤_4자리)));
+
+		ApplySheetResult result = service.applyDecisions(1L, List.of(
+				new ColumnDecision("EMPLOYEES", "PHONE_NUMBER", false, null)));
+
+		assertThat(result.applied()).isEqualTo(1);
+		assertThat(find(service.review(1L), "PHONE_NUMBER").decision().masked()).isFalse();
+	}
+
+	@Test
+	void 없는_프로젝트에는_반영할_수_없다() {
+		assertThatThrownBy(() -> service.applyDecisions(999L, List.of()))
+				.isInstanceOf(ProjectNotFoundException.class);
+	}
+
+	private static ColumnReview find(List<ColumnReview> reviews, String columnName) {
+		return reviews.stream().filter(r -> r.column().name().equals(columnName)).findFirst().orElseThrow();
 	}
 }

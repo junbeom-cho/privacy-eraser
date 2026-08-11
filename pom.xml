@@ -15,6 +15,7 @@
 	<description>DB 컬럼 비식별화(마스킹) 도구</description>
 	<properties>
 		<java.version>17</java.version>
+		<poi.version>5.4.1</poi.version>
 		<mybatis-spring-boot.version>4.1.0</mybatis-spring-boot.version>
 		<!-- Argon2id 구현체. Spring Boot BOM이 관리하지 않아 버전을 직접 적는다. -->
 		<bouncycastle.version>1.85.2</bouncycastle.version>
@@ -59,6 +60,13 @@
 			<artifactId>postgresql</artifactId>
 			<scope>runtime</scope>
 		</dependency>
+		<!-- 컬럼 정의서를 xlsx 로 주고받는다. 엑셀에서 바로 열고 저장할 수 있어야 한다 -->
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>${poi.version}</version>
+		</dependency>
+
 		<!-- raw_schema / edit_schema(타겟)는 Oracle이라 드라이버는 남겨둔다 -->
 		<dependency>
 			<groupId>com.oracle.database.jdbc</groupId>

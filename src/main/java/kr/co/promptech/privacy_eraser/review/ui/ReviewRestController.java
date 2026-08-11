@@ -8,14 +8,23 @@ import kr.co.promptech.privacy_eraser.review.application.SaveOverrideCommand;
 import kr.co.promptech.privacy_eraser.review.domain.ColumnReview;
 import kr.co.promptech.privacy_eraser.review.domain.DecisionSource;
 import kr.co.promptech.privacy_eraser.schema.domain.ColumnKey;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
@@ -29,6 +38,42 @@ public class ReviewRestController {
 	@GetMapping
 	public List<ColumnReviewResponse> review(@PathVariable Long projectId) {
 		return reviewService.review(projectId).stream().map(ColumnReviewResponse::from).toList();
+	}
+
+	/**
+	 * 컬럼 정의서 양식입니다. 머리글만 있고 나머지는 작업자가 채웁니다.
+	 * <p>
+	 * 채워서 올리면 <b>적힌 줄만</b> 반영합니다. 적지 않은 컬럼은 손대지 않습니다.
+	 */
+	@GetMapping("/sheet")
+	public ResponseEntity<byte[]> sheet(@PathVariable Long projectId) {
+		byte[] file = reviewService.decisionSheet();
+		String name = "column-decisions-%d.xlsx".formatted(projectId);
+		return ResponseEntity.ok()
+				.header(HttpHeaders.CONTENT_DISPOSITION,
+						ContentDisposition.attachment().filename(name).build().toString())
+				.contentType(MediaType.APPLICATION_OCTET_STREAM)
+				.body(file);
+	}
+
+	/**
+	 * 채운 정의서를 반영합니다. 적힌 조합만 사용자 지정이 되고, 없는 줄은 손대지 않습니다.
+	 */
+	@PostMapping("/sheet")
+	public ApplySheetResponse uploadSheet(@PathVariable Long projectId,
+			@RequestParam("file") MultipartFile file) throws IOException {
+		if (file.isEmpty()) {
+			throw new IllegalArgumentException("파일이 비어 있습니다.");
+		}
+		ReviewService.ApplySheetResult result = reviewService.applySheet(projectId, file.getBytes());
+		return new ApplySheetResponse(result.applied(), result.errors());
+	}
+
+	/**
+	 * @param applied 반영한 줄 수
+	 * @param errors  반영하지 못한 줄의 사유. 조용히 넘기지 않고 그대로 보여줍니다.
+	 */
+	public record ApplySheetResponse(int applied, List<String> errors) {
 	}
 
 	/**

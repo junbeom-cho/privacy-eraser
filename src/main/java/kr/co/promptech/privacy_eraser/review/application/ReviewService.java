@@ -6,6 +6,8 @@ import kr.co.promptech.privacy_eraser.project.domain.Project;
 import kr.co.promptech.privacy_eraser.project.domain.ProjectNotFoundException;
 import kr.co.promptech.privacy_eraser.project.domain.ProjectRepository;
 import kr.co.promptech.privacy_eraser.review.domain.ColumnOverride;
+import kr.co.promptech.privacy_eraser.review.domain.ColumnDecision;
+import kr.co.promptech.privacy_eraser.review.domain.ColumnDecisionSheet;
 import kr.co.promptech.privacy_eraser.review.domain.ColumnOverrideRepository;
 import kr.co.promptech.privacy_eraser.review.domain.ColumnReview;
 import kr.co.promptech.privacy_eraser.review.domain.KeywordJudge;
@@ -18,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.stream.Collectors;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -31,6 +34,7 @@ public class ReviewService {
 	private final ColumnOverrideRepository overrideRepository;
 	private final SchemaReader schemaReader;
 	private final SampleReader sampleReader;
+	private final ColumnDecisionSheet columnDecisionSheet;
 
 	/**
 	 * 원본의 모든 컬럼에 판정을 붙여 돌려줍니다.
@@ -66,12 +70,8 @@ public class ReviewService {
 		Project project = requireProject(projectId);
 		ColumnMetadata column = requireColumn(project, command.tableName(), command.columnName());
 
-		overrideRepository.findOne(projectId, command.tableName(), command.columnName())
-				.ifPresentOrElse(existing -> {
-					existing.change(command.masked(), command.policy());
-					overrideRepository.update(existing);
-				}, () -> overrideRepository.save(ColumnOverride.of(projectId, command.tableName(),
-						command.columnName(), command.masked(), command.policy())));
+		saveOverride(projectId, new ColumnDecision(command.tableName(), command.columnName(),
+				command.masked(), command.policy()));
 
 		return reviewOne(project, command.tableName(), column);
 	}
@@ -90,6 +90,74 @@ public class ReviewService {
 				.ifPresent(override -> overrideRepository.deleteById(override.getId()));
 
 		return reviewOne(project, tableName, column);
+	}
+
+	/**
+	 * 컬럼 정의서에 적힌 조합을 사용자 지정으로 반영합니다.
+	 * <p>
+	 * 키워드는 이름 규칙이라 의도한 것보다 항상 더 많이 걸립니다. 이건 <b>딱 그 조합만</b> 바꿉니다.
+	 * 정의서에 없는 컬럼은 손대지 않습니다.
+	 * <p>
+	 * 원본에 없는 테이블·컬럼은 반영하지 않고 사유를 모아 돌려줍니다. 조용히 넘기면
+	 * 오타 한 글자에 그 줄이 빠진 것을 알 수 없습니다.
+	 */
+	/** 머리글만 있는 빈 양식입니다. 원본을 읽지 않으므로 프로젝트와 무관하게 같습니다. */
+	public byte[] decisionSheet() {
+		return columnDecisionSheet.write();
+	}
+
+	/**
+	 * 올린 파일을 읽어 반영합니다. 파일을 못 읽은 사유와 반영 못 한 줄의 사유를 함께 돌려줍니다.
+	 */
+	@Transactional
+	public ApplySheetResult applySheet(Long projectId, byte[] file) {
+		ColumnDecisionSheet.SheetReadResult read = columnDecisionSheet.read(file);
+		ApplySheetResult applied = applyDecisions(projectId, read.decisions());
+
+		List<String> errors = new ArrayList<>(read.errors());
+		errors.addAll(applied.errors());
+		return new ApplySheetResult(applied.applied(), errors);
+	}
+
+	@Transactional
+	public ApplySheetResult applyDecisions(Long projectId, List<ColumnDecision> decisions) {
+		Project project = requireProject(projectId);
+		Map<String, List<TableMetadata>> tables = schemaReader.readTables(project.getRawConnection()).stream()
+				.collect(Collectors.groupingBy(table -> table.name().toUpperCase(Locale.ROOT)));
+
+		int applied = 0;
+		List<String> errors = new ArrayList<>();
+		for (ColumnDecision decision : decisions) {
+			if (!hasColumn(tables, decision)) {
+				errors.add("%s.%s 는 원본에 없습니다.".formatted(decision.tableName(), decision.columnName()));
+				continue;
+			}
+			saveOverride(projectId, decision);
+			applied++;
+		}
+		return new ApplySheetResult(applied, errors);
+	}
+
+	private static boolean hasColumn(Map<String, List<TableMetadata>> tables, ColumnDecision decision) {
+		return tables.getOrDefault(decision.tableName(), List.of()).stream()
+				.flatMap(table -> table.columns().stream())
+				.anyMatch(column -> column.name().equalsIgnoreCase(decision.columnName()));
+	}
+
+	private void saveOverride(Long projectId, ColumnDecision decision) {
+		overrideRepository.findOne(projectId, decision.tableName(), decision.columnName())
+				.ifPresentOrElse(existing -> {
+					existing.change(decision.masked(), decision.policy());
+					overrideRepository.update(existing);
+				}, () -> overrideRepository.save(ColumnOverride.of(projectId, decision.tableName(),
+						decision.columnName(), decision.masked(), decision.policy())));
+	}
+
+	/**
+	 * @param applied 반영한 줄 수
+	 * @param errors  반영하지 못한 줄의 사유
+	 */
+	public record ApplySheetResult(int applied, List<String> errors) {
 	}
 
 	/**

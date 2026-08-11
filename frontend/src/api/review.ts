@@ -36,6 +36,32 @@ export const SOURCE_LABEL: Record<DecisionSource, string> = {
   NO_MATCH: '미매칭',
 }
 
+export interface ApplySheetResult {
+  applied: number
+  errors: string[]
+}
+
+/** 현재 검수 결과가 채워진 xlsx 양식입니다. 고쳐서 다시 올리는 왕복을 전제로 합니다. */
+export function sheetUrl(projectId: number) {
+  return `/api/projects/${projectId}/review/sheet`
+}
+
+/** 채운 정의서를 반영합니다. 적힌 조합만 바뀌고 나머지는 그대로입니다. */
+export async function uploadSheet(projectId: number, file: File) {
+  const body = new FormData()
+  body.append('file', file)
+  const response = await fetch(sheetUrl(projectId), {
+    method: 'POST',
+    headers: { Accept: 'application/json' },
+    body,
+  })
+  const json = await response.json().catch(() => null)
+  if (!response.ok) {
+    throw new Error(json?.message ?? '올리지 못했습니다.')
+  }
+  return json as ApplySheetResult
+}
+
 export function listReview(projectId: number) {
   return request<ColumnReviewView[]>('GET', `/api/projects/${projectId}/review`)
 }
