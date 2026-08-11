@@ -1,12 +1,25 @@
+// @use 는 다른 규칙보다 먼저 와야 해서 @font-face 를 _fonts.scss 로 뺐습니다.
+@use './fonts';
+
 // Bootstrap 5.3. 색·간격·컴포넌트는 전부 여기서 옵니다.
 // 커스텀 CSS 변수를 따로 두지 않습니다 - 디자인 체계가 둘이면 한쪽이 반드시 어긋납니다.
-@use 'bootstrap/scss/bootstrap' as *;
+//
+// 글꼴도 Bootstrap 변수로 넘깁니다. body 에 직접 쓰면 .h1~.h6 이나 <code> 처럼
+// Bootstrap 이 자기 변수로 칠하는 곳이 빠집니다.
+@use 'bootstrap/scss/bootstrap' as * with (
+  $font-family-sans-serif: ('Pretendard', system-ui, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif),
+  // 제목만 Paperlogy 입니다. h1~h6 과 .h1~.h6 에 한 번에 걸립니다.
+  $headings-font-family: ('Paperlogy', 'Pretendard', system-ui, sans-serif),
+  $headings-font-weight: 600,
+  $font-family-monospace: ('JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace)
+);
 
-body {
-  font-family: system-ui, -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+// 앱 이름도 제목으로 봅니다.
+.navbar-brand {
+  font-family: $headings-font-family;
 }
 
 // JDBC URL 처럼 눈으로 대조하는 값은 고정폭이 읽기 편합니다.
 .font-mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: $font-family-monospace;
 }

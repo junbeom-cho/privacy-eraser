@@ -1,0 +1,42 @@
+// 실제로 쓰는 굵기만 등록합니다. 등록하지 않은 파일은 빌드 산출물에 들어가지 않습니다.
+// 굵기 하나가 Pretendard 750KB / JetBrains Mono 1MB 라, 전부 넣으면 16MB 가 그대로 딸려갑니다.
+//
+// 400 본문 · 600 강조(fw-semibold, 카드 머리글) 와 제목. 나머지 굵기는 화면에서 쓰지 않습니다.
+//
+// font-display: swap 은 내려받는 동안 글자가 안 보이는 구간을 없앱니다.
+// 대체 글꼴로 먼저 보여주고 준비되면 바꿉니다. 한글 폰트는 커서 이 구간이 깁니다.
+
+// 제목용
+@font-face {
+  font-family: 'Paperlogy';
+  src: url('./fonts/Paperlogy-6SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+// 본문용
+@font-face {
+  font-family: 'Pretendard';
+  src: url('./fonts/Pretendard-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  src: url('./fonts/Pretendard-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+// 테이블명·컬럼명·JDBC URL 처럼 눈으로 대조하는 값에 씁니다.
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('./fonts/JetBrainsMonoNerdFontMono-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
