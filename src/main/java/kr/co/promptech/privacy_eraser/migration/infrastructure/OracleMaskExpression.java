@@ -68,11 +68,16 @@ final class OracleMaskExpression {
 	 * 모든 값을 지정한 값 하나로 바꿉니다. 형식을 판별할 필요가 없어 식이 리터럴 하나입니다.
 	 * <p>
 	 * NULL 은 NULL 로 둡니다. 원래 비어 있던 값을 채우면 없던 데이터가 생깁니다.
+가	 * <p>
+	 * {@code CAST} 로 감싸는 이유는, Oracle 이 문자 리터럴을 {@code CHAR} 로 보기 때문입니다.
+	 * 그대로 두면 {@code CREATE TABLE ... AS SELECT} 가 원본의 {@code VARCHAR2} 를
+	 * <b>고정 길이 {@code CHAR}</b> 로 바꿔 버립니다. 뒤가 공백으로 채워지고 비교 방식도 달라집니다.
+	 * 길이는 글자 수로 셉니다 — 바이트로 세면 한글 값이 잘립니다.
 	 */
 	private static String fixed(String column, String value) {
 		// 값은 사용자가 입력합니다. 따옴표를 이스케이프하지 않으면 SQL 이 깨집니다.
-		return "CASE WHEN %s IS NULL THEN NULL ELSE '%s' END"
-				.formatted(column, value.replace("'", "''"));
+		return "CASE WHEN %s IS NULL THEN NULL ELSE CAST('%s' AS VARCHAR2(%d CHAR)) END"
+				.formatted(column, value.replace("'", "''"), value.length());
 	}
 
 	/** 식별자를 그대로 이어붙이면 예약어나 대소문자에서 깨집니다. */

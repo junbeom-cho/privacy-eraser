@@ -107,7 +107,23 @@ class OracleMaskExpressionTest {
 	void 고정값은_NULL_만_빼고_전부_같은_값이_된다() {
 		String sql = OracleMaskExpression.of("TELNO", MaskingPolicy.fixed("01011111111"), null);
 
-		assertThat(sql).isEqualTo("CASE WHEN \"TELNO\" IS NULL THEN NULL ELSE '01011111111' END");
+		assertThat(sql).isEqualTo(
+				"CASE WHEN \"TELNO\" IS NULL THEN NULL ELSE CAST('01011111111' AS VARCHAR2(11 CHAR)) END");
+	}
+
+	@Test
+	void 고정값은_VARCHAR2_로_캐스팅한다() {
+		// Oracle 은 리터럴을 CHAR 로 봅니다. 그대로 두면 CTAS 가 원본 VARCHAR2 를 고정 길이 CHAR 로
+		// 바꿔 뒤를 공백으로 채웁니다.
+		assertThat(OracleMaskExpression.of("TELNO", MaskingPolicy.fixed("010"), null))
+				.contains("CAST('010' AS VARCHAR2(3 CHAR))");
+	}
+
+	@Test
+	void 고정값_길이는_바이트가_아니라_글자로_센다() {
+		// 한글은 UTF-8 에서 세 바이트라 바이트로 세면 VARCHAR2(2) 가 되어 잘립니다.
+		assertThat(OracleMaskExpression.of("NM", MaskingPolicy.fixed("홍길동"), null))
+				.contains("VARCHAR2(3 CHAR)");
 	}
 
 	@Test
@@ -115,6 +131,13 @@ class OracleMaskExpressionTest {
 		// 값은 사용자가 입력합니다. 그대로 이어붙이면 SQL 이 깨집니다.
 		assertThat(OracleMaskExpression.of("NM", MaskingPolicy.fixed("O'Brien"), null))
 				.contains("'O''Brien'");
+	}
+
+	@Test
+	void 이스케이프한_따옴표는_길이에_세지_않는다() {
+		// SQL 에서는 두 글자지만 실제 값은 한 글자입니다.
+		assertThat(OracleMaskExpression.of("NM", MaskingPolicy.fixed("O'Brien"), null))
+				.contains("VARCHAR2(7 CHAR)");
 	}
 
 	@Test
