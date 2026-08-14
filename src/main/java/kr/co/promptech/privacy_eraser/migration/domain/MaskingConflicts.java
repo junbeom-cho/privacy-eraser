@@ -6,8 +6,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * 마스킹된 값은 서로 겹칠 수 있어 PK·UNIQUE 를 만들 수 없습니다.
+ * <b>부분 마스킹된</b> 값은 서로 겹칠 수 있어 PK·UNIQUE 를 만들 수 없습니다.
  * 데이터를 다 옮긴 뒤에 알면 늦으므로 시작 전에 걸러냅니다.
+ * <p>
+ * 해시는 겹치지 않으므로 걸러내지 않습니다. 그것이 PK·UNIQUE 컬럼에 해시를 두는 이유입니다.
  * <p>
  * FK·CHECK 도 실패할 수 있지만 값을 봐야 알 수 있어 여기서 다루지 않습니다. 실행 중에 드러납니다.
  */
@@ -22,7 +24,8 @@ public final class MaskingConflicts {
 	public static List<String> find(List<ConstraintDefinition> constraints, List<MigrationTarget> targets) {
 		Set<String> maskedColumns = targets.stream()
 				.flatMap(target -> target.columns().stream()
-						.filter(column -> column.policy() != null)
+						// 해시는 값이 겹치지 않아 PK·UNIQUE 를 그대로 만들 수 있습니다.
+						.filter(column -> column.policy() != null && column.policy().mayCollide())
 						.map(column -> key(target.tableName(), column.name())))
 				.collect(Collectors.toSet());
 
@@ -40,7 +43,7 @@ public final class MaskingConflicts {
 	}
 
 	private static String describe(ConstraintDefinition constraint) {
-		return "%s.%s 에 %s(%s)가 걸려 있어 마스킹하면 값이 겹칩니다. 비대상으로 바꾸거나 정책을 조정하세요."
+		return "%s.%s 에 %s(%s)가 걸려 있어 부분 마스킹하면 값이 겹칩니다. 해시로 바꾸거나 비대상으로 두세요."
 				.formatted(constraint.tableName(), String.join(", ", constraint.columns()),
 						constraint.name(), constraint.type() == ConstraintType.PRIMARY_KEY ? "기본키" : "고유키");
 	}

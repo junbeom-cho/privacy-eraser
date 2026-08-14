@@ -57,6 +57,7 @@ function startEdit(keyword: KeywordView) {
   Object.assign(form, {
     word: keyword.word,
     type: keyword.type,
+    maskingType: keyword.maskingType ?? 'PARTIAL',
     direction: keyword.direction ?? 'FROM_END',
     length: keyword.length ?? 4,
   })
@@ -141,6 +142,7 @@ onMounted(load)
       <strong>컬럼명 전체를 그대로 적어도 됩니다</strong> — <code>OWNR_BMNO</code> 처럼 적으면
       그 이름을 가진 컬럼만 걸립니다. 대소문자는 구분하지 않습니다.
       <strong>Undo 가 우선입니다</strong> — Do 와 Undo 에 함께 걸리면 마스킹에서 제외합니다.
+      PK·UNIQUE 컬럼은 부분 마스킹하면 값이 겹쳐 이관할 수 없습니다. <strong>해시</strong>를 쓰세요.
     </div>
 
     <div v-if="notice" class="alert alert-success alert-dismissible" role="status">
@@ -173,16 +175,26 @@ onMounted(load)
           <!-- Undo 는 제외가 전부라 정책이 없습니다. -->
           <template v-if="form.type === 'DO'">
             <div class="col-md-2">
-              <label class="form-label small">마스킹 방향</label>
-              <select v-model="form.direction" class="form-select">
-                <option value="FROM_END">뒤에서부터</option>
-                <option value="FROM_START">앞에서부터</option>
+              <label class="form-label small">방식</label>
+              <select v-model="form.maskingType" class="form-select">
+                <option value="PARTIAL">부분 마스킹</option>
+                <option value="HASH">해시</option>
               </select>
             </div>
-            <div class="col-md-2">
-              <label class="form-label small">개수</label>
-              <input v-model.number="form.length" type="number" min="1" class="form-control" required />
-            </div>
+            <!-- 해시는 방향도 자릿수도 쓰지 않습니다. -->
+            <template v-if="form.maskingType === 'PARTIAL'">
+              <div class="col-md-2">
+                <label class="form-label small">마스킹 방향</label>
+                <select v-model="form.direction" class="form-select">
+                  <option value="FROM_END">뒤에서부터</option>
+                  <option value="FROM_START">앞에서부터</option>
+                </select>
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small">개수</label>
+                <input v-model.number="form.length" type="number" min="1" class="form-control" required />
+              </div>
+            </template>
           </template>
 
           <!-- ms-auto 로 항상 오른쪽 끝입니다. Do/Undo 에 따라 앞 칸 수가 달라져도 자리가 흔들리지 않습니다. -->

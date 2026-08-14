@@ -3,7 +3,12 @@ import { computed, inject, onMounted, ref, type Ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { messageOf } from '@/api/http'
 import { KEY_BADGE, type ProjectView } from '@/api/projects'
-import { DIRECTION_LABEL, type MaskingDirection } from '@/api/keywords'
+import {
+  DIRECTION_LABEL,
+  MASKING_TYPE_LABEL,
+  type MaskingDirection,
+  type MaskingType,
+} from '@/api/keywords'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import {
   clearAllOverrides,
@@ -74,8 +79,10 @@ async function apply(row: ColumnReviewView, change: Partial<ColumnReviewView>) {
     replaceRow(
       await overrideColumn(projectId, row.tableName, row.columnName, {
         masked: next.masked,
-        direction: next.masked ? (next.direction ?? 'FROM_END') : null,
-        length: next.masked ? (next.length ?? 4) : null,
+        maskingType: next.masked ? (next.maskingType ?? 'PARTIAL') : null,
+        // 해시는 방향도 자릿수도 쓰지 않습니다.
+        direction: next.masked && next.maskingType !== 'HASH' ? (next.direction ?? 'FROM_END') : null,
+        length: next.masked && next.maskingType !== 'HASH' ? (next.length ?? 4) : null,
       }),
     )
   } catch (e) {
@@ -136,8 +143,9 @@ onMounted(load)
     <!-- 이관 시작할 때도 막지만, 여기서 알아야 고칠 수 있습니다. -->
     <div v-if="conflicts.length" class="alert alert-danger" role="alert">
       <p class="mb-1">
-        <strong>값이 겹치면 안 되는 컬럼을 마스킹했습니다.</strong>
-        마스킹하면 값이 중복되어 PK·고유키를 걸 수 없으므로 이관을 시작할 수 없습니다.
+        <strong>값이 겹치면 안 되는 컬럼을 부분 마스킹했습니다.</strong>
+        값이 중복되어 PK·고유키를 걸 수 없으므로 이관을 시작할 수 없습니다.
+        <strong>방식을 해시로 바꾸면</strong> 값이 겹치지 않아 그대로 이관할 수 있습니다.
       </p>
       <p class="mb-0 small font-mono">
         <span v-for="row in conflicts" :key="keyOf(row)" class="me-2">{{ keyOf(row) }}</span>
@@ -175,7 +183,7 @@ onMounted(load)
                 <th scope="col">컬럼</th>
                 <th scope="col">타입</th>
                 <th scope="col" style="width: 6rem">마스킹</th>
-                <th scope="col" style="width: 15rem">정책</th>
+                <th scope="col" style="width: 19rem">정책</th>
                 <th scope="col">표본 → 마스킹 결과</th>
                 <th scope="col">판정 근거</th>
               </tr>
@@ -215,22 +223,35 @@ onMounted(load)
                   <div v-if="row.masked" class="d-flex gap-1">
                     <select
                       class="form-select form-select-sm"
-                      :value="row.direction ?? 'FROM_END'"
+                      style="width: 8rem"
+                      :value="row.maskingType ?? 'PARTIAL'"
                       :disabled="savingKey === keyOf(row)"
-                      @change="apply(row, { direction: ($event.target as HTMLSelectElement).value as MaskingDirection })"
+                      @change="apply(row, { maskingType: ($event.target as HTMLSelectElement).value as MaskingType })"
                     >
-                      <option value="FROM_END">{{ DIRECTION_LABEL.FROM_END }}</option>
-                      <option value="FROM_START">{{ DIRECTION_LABEL.FROM_START }}</option>
+                      <option value="PARTIAL">{{ MASKING_TYPE_LABEL.PARTIAL }}</option>
+                      <option value="HASH">{{ MASKING_TYPE_LABEL.HASH }}</option>
                     </select>
-                    <input
-                      type="number"
-                      min="1"
-                      class="form-control form-control-sm"
-                      style="width: 4.5rem"
-                      :value="row.length ?? 4"
-                      :disabled="savingKey === keyOf(row)"
-                      @change="apply(row, { length: Number(($event.target as HTMLInputElement).value) })"
-                    />
+                    <!-- 해시는 방향도 자릿수도 쓰지 않습니다. -->
+                    <template v-if="row.maskingType !== 'HASH'">
+                      <select
+                        class="form-select form-select-sm"
+                        :value="row.direction ?? 'FROM_END'"
+                        :disabled="savingKey === keyOf(row)"
+                        @change="apply(row, { direction: ($event.target as HTMLSelectElement).value as MaskingDirection })"
+                      >
+                        <option value="FROM_END">{{ DIRECTION_LABEL.FROM_END }}</option>
+                        <option value="FROM_START">{{ DIRECTION_LABEL.FROM_START }}</option>
+                      </select>
+                      <input
+                        type="number"
+                        min="1"
+                        class="form-control form-control-sm"
+                        style="width: 4.5rem"
+                        :value="row.length ?? 4"
+                        :disabled="savingKey === keyOf(row)"
+                        @change="apply(row, { length: Number(($event.target as HTMLInputElement).value) })"
+                      />
+                    </template>
                   </div>
                   <span v-else class="text-body-secondary">—</span>
                 </td>
@@ -239,7 +260,12 @@ onMounted(load)
                 <td class="font-mono">
                   <template v-if="row.sample !== null">
                     <span class="text-body-secondary">{{ row.sample }}</span>
-                    <template v-if="row.masked">
+                    <template v-if="row.masked && row.maskingType === 'HASH'">
+                      <span class="mx-1 text-body-secondary">→</span>
+                      <!-- 솔트가 이관 시점에 정해져 미리 계산할 수 없습니다. -->
+                      <span class="text-body-secondary">해시로 대체됩니다</span>
+                    </template>
+                    <template v-else-if="row.masked">
                       <span class="mx-1 text-body-secondary">→</span>
                       <span :class="row.sampleFullyMasked ? 'text-warning' : 'text-primary'">
                         {{ row.maskedSample }}

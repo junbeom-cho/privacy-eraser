@@ -5,6 +5,7 @@ import kr.co.promptech.privacy_eraser.migration.domain.CommentDefinition;
 import kr.co.promptech.privacy_eraser.migration.domain.ConstraintDefinition;
 import kr.co.promptech.privacy_eraser.migration.domain.ConstraintType;
 import kr.co.promptech.privacy_eraser.migration.domain.IndexDefinition;
+import kr.co.promptech.privacy_eraser.keyword.domain.MaskingType;
 import kr.co.promptech.privacy_eraser.migration.domain.MigrationTarget;
 import kr.co.promptech.privacy_eraser.migration.domain.SequenceDefinition;
 import kr.co.promptech.privacy_eraser.migration.domain.SourceObjectReader;
@@ -152,8 +153,10 @@ public class OracleSourceObjectReader implements SourceObjectReader {
 	 */
 	@Override
 	public List<ColumnMaskingStat> countMasking(DbConnection raw, MigrationTarget target) {
+		// 해시는 값 길이와 무관하게 항상 같은 길이라 '통째로 가려짐' 이라는 개념이 없습니다.
 		List<MigrationTarget.Column> masked = target.columns().stream()
-				.filter(column -> column.policy() != null)
+				.filter(column -> column.policy() != null
+						&& column.policy().type() == MaskingType.PARTIAL)
 				.toList();
 		if (masked.isEmpty()) {
 			return List.of();

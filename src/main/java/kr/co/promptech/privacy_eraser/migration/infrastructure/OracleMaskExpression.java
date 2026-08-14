@@ -2,6 +2,7 @@ package kr.co.promptech.privacy_eraser.migration.infrastructure;
 
 import kr.co.promptech.privacy_eraser.keyword.domain.MaskingDirection;
 import kr.co.promptech.privacy_eraser.keyword.domain.MaskingPolicy;
+import kr.co.promptech.privacy_eraser.keyword.domain.MaskingType;
 
 /**
  * 도메인이 정한 마스킹 정책을 Oracle SQL 식으로 옮깁니다.
@@ -19,14 +20,19 @@ final class OracleMaskExpression {
 
 	/**
 	 * @param policy null 이면 마스킹하지 않고 컬럼을 그대로 읽습니다.
+	 * @param salt   해시에 붙일 솔트. 이관마다 새로 만들고 보관하지 않습니다
 	 */
-	static String of(String columnName, MaskingPolicy policy) {
+	static String of(String columnName, MaskingPolicy policy, String salt) {
 		String column = quote(columnName);
 		if (policy == null) {
 			return column;
 		}
 		// 마스킹 결과는 '*' 가 섞인 문자열이라 숫자·날짜로 되돌릴 수 없습니다. 문자로 다룹니다.
 		String text = "TO_CHAR(%s)".formatted(column);
+
+		if (policy.type() == MaskingType.HASH) {
+			return hash(text, salt);
+		}
 		int length = policy.length();
 
 		String whenShort = "RPAD('*', LENGTH(%s), '*')".formatted(text);
@@ -38,6 +44,21 @@ final class OracleMaskExpression {
 				CASE WHEN %s IS NULL THEN NULL \
 				WHEN LENGTH(%s) <= %d THEN %s \
 				ELSE %s END""".formatted(column, text, length, whenShort, otherwise);
+	}
+
+	/**
+	 * 값 전체를 SHA-256 으로 바꿉니다. 같은 값은 같은 해시, 다른 값은 다른 해시라 고유성이 유지됩니다.
+	 * <p>
+	 * {@code STANDARD_HASH} 는 12c 부터의 <b>내장 SQL 함수</b>라 권한이 필요 없습니다.
+	 * {@code DBMS_CRYPTO} 는 EXECUTE 권한이 따로 필요해 받은 DB 에서 기대할 수 없습니다.
+	 * <p>
+	 * 솔트 없이 쓰면 주민등록번호처럼 경우의 수가 적은 값은 전수 대입으로 뚫립니다.
+	 */
+	private static String hash(String text, String salt) {
+		if (salt == null || salt.isBlank()) {
+			throw new IllegalArgumentException("해시에는 솔트가 필요합니다.");
+		}
+		return "LOWER(RAWTOHEX(STANDARD_HASH(%s || '%s', 'SHA256')))".formatted(text, salt);
 	}
 
 	/** 식별자를 그대로 이어붙이면 예약어나 대소문자에서 깨집니다. */

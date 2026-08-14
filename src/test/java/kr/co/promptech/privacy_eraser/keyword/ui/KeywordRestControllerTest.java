@@ -54,7 +54,7 @@ class KeywordRestControllerTest {
 	void 목록을_돌려준다() throws Exception {
 		given(keywordService.findAll(1L)).willReturn(List.of(
 				new Keyword(10L, 1L, "phone", kr.co.promptech.privacy_eraser.keyword.domain.KeywordType.DO,
-						new MaskingPolicy(MaskingDirection.FROM_END, 4)),
+						MaskingPolicy.partial(MaskingDirection.FROM_END, 4)),
 				Keyword.skipFor(1L, "id")));
 
 		mockMvc.perform(get("/api/projects/1/keywords"))

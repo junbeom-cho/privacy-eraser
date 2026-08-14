@@ -15,8 +15,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class KeywordJudgeTest {
 
-	private static final MaskingPolicy 뒤_4자리 = new MaskingPolicy(MaskingDirection.FROM_END, 4);
-	private static final MaskingPolicy 앞_1자리 = new MaskingPolicy(MaskingDirection.FROM_START, 1);
+	private static final MaskingPolicy 뒤_4자리 = MaskingPolicy.partial(MaskingDirection.FROM_END, 4);
+	private static final MaskingPolicy 앞_1자리 = MaskingPolicy.partial(MaskingDirection.FROM_START, 1);
 
 	private static ColumnMetadata column(String name) {
 		return ColumnMetadata.character(name, "VARCHAR2", 50, true);

@@ -2,11 +2,19 @@ import { request } from './http'
 
 export type KeywordType = 'DO' | 'UNDO'
 export type MaskingDirection = 'FROM_START' | 'FROM_END'
+/** 부분 마스킹은 값이 겹쳐 PK·UNIQUE 에 쓸 수 없습니다. 그런 컬럼에는 해시를 씁니다. */
+export type MaskingType = 'PARTIAL' | 'HASH'
+
+export const MASKING_TYPE_LABEL: Record<MaskingType, string> = {
+  PARTIAL: '부분 마스킹',
+  HASH: '해시',
+}
 
 export interface KeywordView {
   id: number
   word: string
   type: KeywordType
+  maskingType: MaskingType | null
   /** UNDO 는 제외가 전부라 정책이 없습니다. */
   direction: MaskingDirection | null
   length: number | null
@@ -15,12 +23,13 @@ export interface KeywordView {
 export interface KeywordInput {
   word: string
   type: KeywordType
+  maskingType: MaskingType
   direction: MaskingDirection | null
   length: number | null
 }
 
 export function emptyKeyword(): KeywordInput {
-  return { word: '', type: 'DO', direction: 'FROM_END', length: 4 }
+  return { word: '', type: 'DO', maskingType: 'PARTIAL', direction: 'FROM_END', length: 4 }
 }
 
 export const DIRECTION_LABEL: Record<MaskingDirection, string> = {
@@ -31,6 +40,8 @@ export const DIRECTION_LABEL: Record<MaskingDirection, string> = {
 /** 정책을 사람이 읽는 문장으로 만듭니다. */
 export function describePolicy(keyword: KeywordView) {
   if (keyword.type === 'UNDO') return '마스킹 제외'
+  // 해시는 방향도 자릿수도 쓰지 않습니다.
+  if (keyword.maskingType === 'HASH') return '해시'
   if (!keyword.direction || !keyword.length) return '—'
   return `${DIRECTION_LABEL[keyword.direction]} ${keyword.length}자`
 }

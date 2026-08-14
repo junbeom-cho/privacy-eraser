@@ -1,5 +1,6 @@
 package kr.co.promptech.privacy_eraser.review.domain;
 
+import kr.co.promptech.privacy_eraser.keyword.domain.MaskingType;
 import kr.co.promptech.privacy_eraser.schema.domain.ColumnMetadata;
 
 /**
@@ -28,6 +29,9 @@ public record ColumnReview(String tableName, ColumnMetadata column, MaskingDecis
 	 */
 	public boolean policyExceedsColumnLength() {
 		Integer maxLength = column.maxLength();
-		return decision.masked() && maxLength != null && decision.policy().length() > maxLength;
+		// 해시에는 자릿수가 없습니다. 값 길이와 무관하게 항상 같은 길이가 나옵니다.
+		return decision.masked() && maxLength != null
+				&& decision.policy().type() == MaskingType.PARTIAL
+				&& decision.policy().length() > maxLength;
 	}
 }

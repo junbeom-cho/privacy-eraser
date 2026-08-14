@@ -8,6 +8,7 @@ import kr.co.promptech.privacy_eraser.keyword.domain.KeywordNotFoundException;
 import kr.co.promptech.privacy_eraser.keyword.domain.KeywordType;
 import kr.co.promptech.privacy_eraser.keyword.domain.MaskingDirection;
 import kr.co.promptech.privacy_eraser.keyword.domain.MaskingPolicy;
+import kr.co.promptech.privacy_eraser.keyword.domain.MaskingType;
 import kr.co.promptech.privacy_eraser.project.domain.ProjectNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -63,7 +64,8 @@ public class KeywordRestController {
 		keywordService.delete(projectId, keywordId);
 	}
 
-	public record KeywordRequest(String word, KeywordType type, MaskingDirection direction, Integer length) {
+	public record KeywordRequest(String word, KeywordType type, MaskingType maskingType,
+			MaskingDirection direction, Integer length) {
 
 		SaveKeywordCommand toCommand(Long projectId) {
 			return new SaveKeywordCommand(projectId, word, type, toPolicy());
@@ -76,19 +78,23 @@ public class KeywordRestController {
 			if (type != KeywordType.DO) {
 				return null;
 			}
+			if (maskingType == MaskingType.HASH) {
+				return MaskingPolicy.hash();
+			}
 			if (direction == null || length == null) {
 				throw new IllegalArgumentException("Do 키워드에는 마스킹 방향과 개수가 필요합니다.");
 			}
-			return new MaskingPolicy(direction, length);
+			return MaskingPolicy.partial(direction, length);
 		}
 	}
 
 	public record KeywordResponse(Long id, String word, KeywordType type,
-			MaskingDirection direction, Integer length) {
+			MaskingType maskingType, MaskingDirection direction, Integer length) {
 
 		static KeywordResponse from(Keyword keyword) {
 			MaskingPolicy policy = keyword.getPolicy();
 			return new KeywordResponse(keyword.getId(), keyword.getWord(), keyword.getType(),
+					policy == null ? null : policy.type(),
 					policy == null ? null : policy.direction(),
 					policy == null ? null : policy.length());
 		}

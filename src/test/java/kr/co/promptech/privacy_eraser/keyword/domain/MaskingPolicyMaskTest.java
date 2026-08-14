@@ -10,11 +10,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 class MaskingPolicyMaskTest {
 
 	private static MaskingPolicy fromEnd(int length) {
-		return new MaskingPolicy(MaskingDirection.FROM_END, length);
+		return MaskingPolicy.partial(MaskingDirection.FROM_END, length);
 	}
 
 	private static MaskingPolicy fromStart(int length) {
-		return new MaskingPolicy(MaskingDirection.FROM_START, length);
+		return MaskingPolicy.partial(MaskingDirection.FROM_START, length);
 	}
 
 	@Test

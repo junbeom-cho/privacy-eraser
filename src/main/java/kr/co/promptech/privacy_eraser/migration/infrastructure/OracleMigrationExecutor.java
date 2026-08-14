@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.security.SecureRandom;
 import java.sql.Statement;
 import java.util.Locale;
 import java.util.Properties;
@@ -37,16 +38,41 @@ public class OracleMigrationExecutor implements MigrationExecutor {
 	 */
 	private final ThreadLocal<Connection> session = new ThreadLocal<>();
 
+	/**
+	 * 해시에 붙일 솔트입니다. 이관 한 건마다 새로 만들고 <b>끝나면 버립니다.</b>
+	 * 어디에도 저장하지 않으므로 아무도 되돌릴 수 없습니다.
+	 * <p>
+	 * 이관본 안에서는 모든 해시가 같은 솔트로 만들어져 FK 가 그대로 맞습니다.
+	 * 재이관하면 값이 전부 달라지지만, 테이블을 전부 다시 만들므로 내부 정합성은 유지됩니다.
+	 */
+	private final ThreadLocal<String> salt = new ThreadLocal<>();
+
+	private static final SecureRandom SALT_RANDOM = new SecureRandom();
+	private static final int SALT_BYTES = 32;
+
 	@Override
 	public void openSession(DbConnection edit) {
 		closeSession();
 		session.set(connect(edit));
+		salt.set(newSalt());
+	}
+
+	/** 2^256 이라 키 파생 함수로 늘릴 것이 없습니다. 처음부터 강하게 만듭니다. */
+	private static String newSalt() {
+		byte[] bytes = new byte[SALT_BYTES];
+		SALT_RANDOM.nextBytes(bytes);
+		StringBuilder hex = new StringBuilder(bytes.length * 2);
+		for (byte b : bytes) {
+			hex.append("%02x".formatted(b));
+		}
+		return hex.toString();
 	}
 
 	@Override
 	public void closeSession() {
 		Connection open = session.get();
 		session.remove();
+		salt.remove();
 		if (open != null) {
 			try {
 				open.close();
@@ -84,9 +110,10 @@ public class OracleMigrationExecutor implements MigrationExecutor {
 
 	@Override
 	public void createAndCopy(DbConnection raw, DbConnection edit, MigrationTarget target) {
+		String runSalt = salt.get();
 		String selectList = target.columns().stream()
 				.map(column -> "%s AS %s".formatted(
-						OracleMaskExpression.of(column.name(), column.policy()),
+						OracleMaskExpression.of(column.name(), column.policy(), runSalt),
 						OracleMaskExpression.quote(column.name())))
 				.collect(Collectors.joining(",\n       "));
 

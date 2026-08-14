@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class KeywordServiceTest {
 
-	private static final MaskingPolicy 뒤_4자리 = new MaskingPolicy(MaskingDirection.FROM_END, 4);
+	private static final MaskingPolicy 뒤_4자리 = MaskingPolicy.partial(MaskingDirection.FROM_END, 4);
 	private static final DbConnection RAW =
 			new DbConnection("jdbc:oracle:thin:@localhost:1521/XE", "hr", "pw", "HR");
 	private static final DbConnection EDIT =

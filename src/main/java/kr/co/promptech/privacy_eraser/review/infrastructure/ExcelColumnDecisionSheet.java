@@ -29,13 +29,14 @@ import java.util.List;
 public class ExcelColumnDecisionSheet implements ColumnDecisionSheet {
 
 	private static final String SHEET_NAME = "컬럼 정의서";
-	private static final String[] HEADERS = { "테이블명", "컬럼명", "마스킹", "방향", "자릿수", "이유" };
+	private static final String[] HEADERS = { "테이블명", "컬럼명", "마스킹", "방식", "방향", "자릿수", "이유" };
 
 	private static final int TABLE = 0;
 	private static final int COLUMN = 1;
 	private static final int MASKED = 2;
-	private static final int DIRECTION = 3;
-	private static final int LENGTH = 4;
+	private static final int TYPE = 3;
+	private static final int DIRECTION = 4;
+	private static final int LENGTH = 5;
 
 	/** 손으로 채우는 칸이라 고를 수 있게 해 둡니다. 오타 한 글자에 그 줄이 통째로 빠집니다. */
 	private static final String[] MASKED_CHOICES = { "Y", "N" };
@@ -43,6 +44,8 @@ public class ExcelColumnDecisionSheet implements ColumnDecisionSheet {
 	/** 화면에 보이는 말 그대로 받습니다. 영문 상수명을 외우게 할 이유가 없습니다. */
 	private static final String FROM_START = "앞에서부터";
 	private static final String FROM_END = "뒤에서부터";
+	private static final String PARTIAL = "부분 마스킹";
+	private static final String HASH = "해시";
 
 	/**
 	 * 머리글만 있는 빈 양식입니다. 작업자가 채워서 올리면 <b>적힌 줄만</b> 반영합니다.
@@ -73,6 +76,7 @@ public class ExcelColumnDecisionSheet implements ColumnDecisionSheet {
 	private static void addChoices(Sheet sheet) {
 		DataValidationHelper helper = sheet.getDataValidationHelper();
 		addChoice(sheet, helper, MASKED, MASKED_CHOICES);
+		addChoice(sheet, helper, TYPE, new String[] { PARTIAL, HASH });
 		addChoice(sheet, helper, DIRECTION, new String[] { FROM_START, FROM_END });
 	}
 
@@ -142,8 +146,21 @@ public class ExcelColumnDecisionSheet implements ColumnDecisionSheet {
 		if (!masked) {
 			return new ColumnDecision(table, column, false, null);
 		}
-		return new ColumnDecision(table, column, true,
-				new MaskingPolicy(direction(text(row, DIRECTION)), length(row)));
+		return new ColumnDecision(table, column, true, policy(row));
+	}
+
+	/**
+	 * 방식을 비워두면 부분 마스킹으로 봅니다. 대부분의 컬럼이 그쪽이라 매번 적게 할 이유가 없습니다.
+	 */
+	private static MaskingPolicy policy(Row row) {
+		String type = text(row, TYPE).strip();
+		if (type.equals(HASH) || type.equalsIgnoreCase("HASH")) {
+			return MaskingPolicy.hash();
+		}
+		if (!type.isBlank() && !type.equals(PARTIAL) && !type.equalsIgnoreCase("PARTIAL")) {
+			throw new IllegalArgumentException("방식은 '%s' 또는 '%s' 여야 합니다.".formatted(PARTIAL, HASH));
+		}
+		return MaskingPolicy.partial(direction(text(row, DIRECTION)), length(row));
 	}
 
 	private static MaskingDirection direction(String value) {

@@ -1,5 +1,6 @@
 package kr.co.promptech.privacy_eraser.migration.application;
 
+import kr.co.promptech.privacy_eraser.keyword.domain.MaskingType;
 import kr.co.promptech.privacy_eraser.migration.domain.ColumnMaskingStat;
 import kr.co.promptech.privacy_eraser.migration.domain.ConstraintDefinition;
 import kr.co.promptech.privacy_eraser.migration.domain.ConstraintType;
@@ -98,7 +99,8 @@ public class MigrationService {
 	private void collectStats(Long runId, Project project, List<MigrationTarget> targets) {
 		try {
 			List<ColumnMaskingStat> stats = targets.stream()
-					.filter(target -> target.columns().stream().anyMatch(column -> column.policy() != null))
+					.filter(target -> target.columns().stream().anyMatch(column -> column.policy() != null
+							&& column.policy().type() == MaskingType.PARTIAL))
 					.flatMap(target -> sourceObjectReader.countMasking(project.getRawConnection(), target).stream())
 					.filter(ColumnMaskingStat::worthReporting)
 					.toList();

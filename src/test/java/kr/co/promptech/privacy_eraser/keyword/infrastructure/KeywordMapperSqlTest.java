@@ -3,6 +3,7 @@ package kr.co.promptech.privacy_eraser.keyword.infrastructure;
 import kr.co.promptech.privacy_eraser.keyword.domain.Keyword;
 import kr.co.promptech.privacy_eraser.keyword.domain.KeywordType;
 import kr.co.promptech.privacy_eraser.keyword.domain.MaskingDirection;
+import kr.co.promptech.privacy_eraser.keyword.domain.MaskingType;
 import kr.co.promptech.privacy_eraser.keyword.domain.MaskingPolicy;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
 import org.apache.ibatis.mapping.BoundSql;
@@ -61,10 +62,10 @@ class KeywordMapperSqlTest {
 
 	@Test
 	void Do_키워드는_정책까지_바인딩된다() {
-		Keyword keyword = Keyword.markFor(7L, "phone", new MaskingPolicy(MaskingDirection.FROM_END, 4));
+		Keyword keyword = Keyword.markFor(7L, "phone", MaskingPolicy.partial(MaskingDirection.FROM_END, 4));
 
 		assertThat(boundValues("insert", params(keyword)))
-				.containsExactly(1L, 7L, "phone", KeywordType.DO, MaskingDirection.FROM_END, 4);
+				.containsExactly(1L, 7L, "phone", KeywordType.DO, MaskingType.PARTIAL, MaskingDirection.FROM_END, 4);
 	}
 
 	@Test
@@ -72,6 +73,6 @@ class KeywordMapperSqlTest {
 		Keyword keyword = Keyword.skipFor(7L, "id");
 
 		assertThat(boundValues("insert", params(keyword)))
-				.containsExactly(1L, 7L, "id", KeywordType.UNDO, null, null);
+				.containsExactly(1L, 7L, "id", KeywordType.UNDO, null, null, null);
 	}
 }

@@ -40,7 +40,7 @@ class MigrationServiceTest {
 	private static final String URL = "jdbc:oracle:thin:@localhost:1521/XE";
 	private static final DbConnection RAW = new DbConnection(URL, "hr", "pw", "HR");
 	private static final DbConnection EDIT = new DbConnection(URL, "hr", "pw", "HR_EDIT");
-	private static final MaskingPolicy 뒤_4자리 = new MaskingPolicy(MaskingDirection.FROM_END, 4);
+	private static final MaskingPolicy 뒤_4자리 = MaskingPolicy.partial(MaskingDirection.FROM_END, 4);
 
 	private FakeProjectRepository projects;
 	private FakeRunRepository runs;

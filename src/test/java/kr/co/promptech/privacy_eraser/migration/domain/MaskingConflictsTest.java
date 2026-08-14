@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class MaskingConflictsTest {
 
-	private static final MaskingPolicy 뒤_4자리 = new MaskingPolicy(MaskingDirection.FROM_END, 4);
+	private static final MaskingPolicy 뒤_4자리 = MaskingPolicy.partial(MaskingDirection.FROM_END, 4);
 
 	private static ConstraintDefinition unique(String table, String... columns) {
 		return new ConstraintDefinition(table, "UK_" + table, ConstraintType.UNIQUE,
@@ -89,5 +89,28 @@ class MaskingConflictsTest {
 		assertThat(MaskingConflicts.find(
 				List.of(unique("OTHER_TABLE", "EMAIL")),
 				List.of(target("EMPLOYEES", "EMAIL")))).isEmpty();
+	}
+
+	@Test
+	void 해시로_지정한_컬럼은_충돌이_아니다() {
+		// 해시는 서로 다른 값이 서로 다른 결과가 되어 PK·UNIQUE 를 그대로 만들 수 있습니다.
+		MigrationTarget target = new MigrationTarget("EMPLOYEES", List.of(
+				new MigrationTarget.Column("ID", null),
+				new MigrationTarget.Column("EMAIL", MaskingPolicy.hash())));
+
+		assertThat(MaskingConflicts.find(List.of(unique("EMPLOYEES", "EMAIL")), List.of(target))).isEmpty();
+	}
+
+	@Test
+	void 같은_테이블에_해시와_부분_마스킹이_섞여도_부분_마스킹만_걸린다() {
+		MigrationTarget target = new MigrationTarget("EMPLOYEES", List.of(
+				new MigrationTarget.Column("EMAIL", MaskingPolicy.hash()),
+				new MigrationTarget.Column("PHONE", 뒤_4자리)));
+
+		List<String> conflicts = MaskingConflicts.find(
+				List.of(unique("EMPLOYEES", "EMAIL"), unique("EMPLOYEES", "PHONE")), List.of(target));
+
+		assertThat(conflicts).hasSize(1);
+		assertThat(conflicts.get(0)).contains("PHONE");
 	}
 }

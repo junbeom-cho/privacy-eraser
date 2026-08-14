@@ -32,8 +32,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ReviewServiceTest {
 
-	private static final MaskingPolicy 뒤_4자리 = new MaskingPolicy(MaskingDirection.FROM_END, 4);
-	private static final MaskingPolicy 앞_1자리 = new MaskingPolicy(MaskingDirection.FROM_START, 1);
+	private static final MaskingPolicy 뒤_4자리 = MaskingPolicy.partial(MaskingDirection.FROM_END, 4);
+	private static final MaskingPolicy 앞_1자리 = MaskingPolicy.partial(MaskingDirection.FROM_START, 1);
 	private static final DbConnection RAW =
 			new DbConnection("jdbc:oracle:thin:@localhost:1521/XE", "hr", "pw", "HR");
 	private static final DbConnection EDIT =
@@ -95,7 +95,7 @@ class ReviewServiceTest {
 
 	@Test
 	void 정책이_컬럼_길이보다_길면_알린다() {
-		keywords.saved.add(Keyword.markFor(1L, "phone", new MaskingPolicy(MaskingDirection.FROM_END, 50)));
+		keywords.saved.add(Keyword.markFor(1L, "phone", MaskingPolicy.partial(MaskingDirection.FROM_END, 50)));
 
 		assertThat(reviewOf("PHONE_NUMBER").policyExceedsColumnLength()).isTrue();
 		assertThat(reviewOf("SALARY").policyExceedsColumnLength()).isFalse();

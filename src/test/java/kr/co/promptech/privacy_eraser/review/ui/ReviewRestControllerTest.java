@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import({ SecurityConfig.class, GlobalExceptionHandler.class })
 class ReviewRestControllerTest {
 
-	private static final MaskingPolicy 뒤_4자리 = new MaskingPolicy(MaskingDirection.FROM_END, 4);
+	private static final MaskingPolicy 뒤_4자리 = MaskingPolicy.partial(MaskingDirection.FROM_END, 4);
 	private static final ColumnMetadata PHONE = ColumnMetadata.character("PHONE_NUMBER", "VARCHAR2", 20, true);
 
 	@Autowired

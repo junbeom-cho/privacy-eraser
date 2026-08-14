@@ -3,6 +3,7 @@ package kr.co.promptech.privacy_eraser.review.ui;
 import lombok.RequiredArgsConstructor;
 import kr.co.promptech.privacy_eraser.keyword.domain.MaskingDirection;
 import kr.co.promptech.privacy_eraser.keyword.domain.MaskingPolicy;
+import kr.co.promptech.privacy_eraser.keyword.domain.MaskingType;
 import kr.co.promptech.privacy_eraser.review.application.ReviewService;
 import kr.co.promptech.privacy_eraser.review.application.SaveOverrideCommand;
 import kr.co.promptech.privacy_eraser.review.domain.ColumnReview;
@@ -109,7 +110,8 @@ public class ReviewRestController {
 		return ColumnReviewResponse.from(reviewService.clearOverride(projectId, tableName, columnName));
 	}
 
-	public record OverrideRequest(boolean masked, MaskingDirection direction, Integer length) {
+	public record OverrideRequest(boolean masked, MaskingType maskingType,
+			MaskingDirection direction, Integer length) {
 
 		SaveOverrideCommand toCommand(String tableName, String columnName) {
 			return new SaveOverrideCommand(tableName, columnName, masked, toPolicy());
@@ -119,10 +121,13 @@ public class ReviewRestController {
 			if (!masked) {
 				return null;
 			}
+			if (maskingType == MaskingType.HASH) {
+				return MaskingPolicy.hash();
+			}
 			if (direction == null || length == null) {
 				throw new IllegalArgumentException("마스킹 대상에는 방향과 개수가 필요합니다.");
 			}
-			return new MaskingPolicy(direction, length);
+			return MaskingPolicy.partial(direction, length);
 		}
 	}
 
@@ -132,7 +137,7 @@ public class ReviewRestController {
 	 */
 	public record ColumnReviewResponse(String tableName, String columnName, String type, boolean nullable,
 			List<String> tokens, Set<ColumnKey> keys, boolean uniqueConflict,
-			boolean masked, MaskingDirection direction, Integer length,
+			boolean masked, MaskingType maskingType, MaskingDirection direction, Integer length,
 			DecisionSource source, String matchedKeyword, boolean policyExceedsLength,
 			String sample, String maskedSample, boolean sampleFullyMasked) {
 
@@ -145,9 +150,12 @@ public class ReviewRestController {
 					review.column().nullable(),
 					review.column().tokens(),
 					review.column().keys(),
-					// 마스킹하면 값이 겹쳐 이관을 시작할 수 없습니다. 여기서 먼저 알려줍니다.
-					review.column().requiresUniqueValues() && review.decision().masked(),
+					// 부분 마스킹하면 값이 겹쳐 이관을 시작할 수 없습니다. 여기서 먼저 알려줍니다.
+					// 해시는 겹치지 않으므로 충돌이 아닙니다.
+					review.column().requiresUniqueValues() && review.decision().masked()
+							&& review.decision().policy().mayCollide(),
 					review.decision().masked(),
+					policy == null ? null : policy.type(),
 					policy == null ? null : policy.direction(),
 					policy == null ? null : policy.length(),
 					review.decision().source(),
