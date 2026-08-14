@@ -29,9 +29,14 @@ public record ColumnReview(String tableName, ColumnMetadata column, MaskingDecis
 	 */
 	public boolean policyExceedsColumnLength() {
 		Integer maxLength = column.maxLength();
+		if (!decision.masked() || maxLength == null) {
+			return false;
+		}
+		// 고정값은 그 값 자체가 컬럼보다 길면 적재 중 ORA-12899 로 실패합니다.
+		if (decision.policy().type() == MaskingType.FIXED) {
+			return decision.policy().exceeds(maxLength);
+		}
 		// 해시에는 자릿수가 없습니다. 값 길이와 무관하게 항상 같은 길이가 나옵니다.
-		return decision.masked() && maxLength != null
-				&& decision.policy().type() == MaskingType.PARTIAL
-				&& decision.policy().length() > maxLength;
+		return decision.policy().type() == MaskingType.PARTIAL && decision.policy().length() > maxLength;
 	}
 }

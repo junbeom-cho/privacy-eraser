@@ -66,4 +66,58 @@ class MaskingPolicyTest {
 		assertThat(MaskingPolicy.partial(MaskingDirection.FROM_END, 4).mayCollide()).isTrue();
 		assertThat(MaskingPolicy.hash().mayCollide()).isFalse();
 	}
+
+	// ===== 고정값 =====
+
+	@Test
+	void 고정값은_값을_들고_있고_방향과_자릿수는_없다() {
+		MaskingPolicy policy = MaskingPolicy.fixed("01011111111");
+
+		assertThat(policy.type()).isEqualTo(MaskingType.FIXED);
+		assertThat(policy.fixedValue()).isEqualTo("01011111111");
+		assertThat(policy.direction()).isNull();
+		assertThat(policy.length()).isNull();
+	}
+
+	@Test
+	void 고정값은_형식과_무관하게_같은_결과를_낸다() {
+		MaskingPolicy policy = MaskingPolicy.fixed("01011111111");
+
+		assertThat(policy.mask("010-1234-5678")).isEqualTo("01011111111");
+		assertThat(policy.mask("01012345678")).isEqualTo("01011111111");
+		// 전화번호가 아닌 쓰레기 값도 유효한 모양이 됩니다.
+		assertThat(policy.mask("2830451")).isEqualTo("01011111111");
+	}
+
+	@Test
+	void 고정값도_NULL_은_NULL_로_둔다() {
+		// 원래 비어 있던 값을 채우면 없던 데이터가 생깁니다.
+		assertThat(MaskingPolicy.fixed("01011111111").mask(null)).isNull();
+	}
+
+	@Test
+	void 값이_없는_고정값은_만들_수_없다() {
+		assertThatThrownBy(() -> MaskingPolicy.fixed("  "))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("고정값");
+	}
+
+	@Test
+	void 고정값은_모든_행이_같아져_PK_에_쓸_수_없다() {
+		assertThat(MaskingPolicy.fixed("01011111111").mayCollide()).isTrue();
+	}
+
+	@Test
+	void 고정값은_길이_초과_경고_대상이_아니다() {
+		// 원본 길이를 보지 않습니다. 대신 고정값 자체가 컬럼보다 긴지는 따로 봅니다.
+		assertThat(MaskingPolicy.fixed("01011111111").masksEntireValue("짧음")).isFalse();
+	}
+
+	@Test
+	void 고정값이_컬럼_길이보다_길면_알_수_있다() {
+		assertThat(MaskingPolicy.fixed("01011111111").exceeds(5)).isTrue();
+		assertThat(MaskingPolicy.fixed("01011111111").exceeds(20)).isFalse();
+		// 다른 방식은 이 문제가 없습니다.
+		assertThat(MaskingPolicy.hash().exceeds(5)).isFalse();
+	}
 }

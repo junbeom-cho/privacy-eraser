@@ -12,11 +12,12 @@
 			<arg column="mask_type" javaType="java.lang.String"/>
 			<arg column="mask_direction" javaType="java.lang.String"/>
 			<arg column="mask_length" javaType="java.lang.Integer"/>
+			<arg column="mask_value" javaType="java.lang.String"/>
 		</constructor>
 	</resultMap>
 
 	<sql id="columns">
-		keyword_id, project_id, word, keyword_type, mask_type, mask_direction, mask_length
+		keyword_id, project_id, word, keyword_type, mask_type, mask_direction, mask_length, mask_value
 	</sql>
 
 	<select id="nextKeywordId" resultType="long">
@@ -34,12 +35,13 @@
 	</select>
 
 	<insert id="insert">
-		INSERT INTO keyword (keyword_id, project_id, word, keyword_type, mask_type, mask_direction, mask_length)
+		INSERT INTO keyword (keyword_id, project_id, word, keyword_type, mask_type, mask_direction, mask_length, mask_value)
 		VALUES (
 			#{id}, #{keyword.projectId}, #{keyword.word}, #{keyword.type},
 			<!-- UNDO 는 정책이 없어 null 이 들어옵니다. jdbcType 이 없으면 드라이버가 타입을 몰라 실패합니다. -->
 			#{keyword.policy.type,jdbcType=VARCHAR},
-			#{keyword.policy.direction,jdbcType=VARCHAR}, #{keyword.policy.length,jdbcType=INTEGER}
+			#{keyword.policy.direction,jdbcType=VARCHAR}, #{keyword.policy.length,jdbcType=INTEGER},
+			#{keyword.policy.fixedValue,jdbcType=VARCHAR}
 		)
 	</insert>
 
@@ -49,7 +51,8 @@
 			keyword_type   = #{keyword.type},
 			mask_type      = #{keyword.policy.type,jdbcType=VARCHAR},
 			mask_direction = #{keyword.policy.direction,jdbcType=VARCHAR},
-			mask_length    = #{keyword.policy.length,jdbcType=INTEGER}
+			mask_length    = #{keyword.policy.length,jdbcType=INTEGER},
+			mask_value     = #{keyword.policy.fixedValue,jdbcType=VARCHAR}
 		WHERE keyword_id = #{keyword.id}
 	</update>
 

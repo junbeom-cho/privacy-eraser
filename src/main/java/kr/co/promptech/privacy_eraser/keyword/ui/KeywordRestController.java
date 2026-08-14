@@ -65,7 +65,7 @@ public class KeywordRestController {
 	}
 
 	public record KeywordRequest(String word, KeywordType type, MaskingType maskingType,
-			MaskingDirection direction, Integer length) {
+			MaskingDirection direction, Integer length, String fixedValue) {
 
 		SaveKeywordCommand toCommand(Long projectId) {
 			return new SaveKeywordCommand(projectId, word, type, toPolicy());
@@ -81,6 +81,9 @@ public class KeywordRestController {
 			if (maskingType == MaskingType.HASH) {
 				return MaskingPolicy.hash();
 			}
+			if (maskingType == MaskingType.FIXED) {
+				return MaskingPolicy.fixed(fixedValue);
+			}
 			if (direction == null || length == null) {
 				throw new IllegalArgumentException("Do 키워드에는 마스킹 방향과 개수가 필요합니다.");
 			}
@@ -89,14 +92,15 @@ public class KeywordRestController {
 	}
 
 	public record KeywordResponse(Long id, String word, KeywordType type,
-			MaskingType maskingType, MaskingDirection direction, Integer length) {
+			MaskingType maskingType, MaskingDirection direction, Integer length, String fixedValue) {
 
 		static KeywordResponse from(Keyword keyword) {
 			MaskingPolicy policy = keyword.getPolicy();
 			return new KeywordResponse(keyword.getId(), keyword.getWord(), keyword.getType(),
 					policy == null ? null : policy.type(),
 					policy == null ? null : policy.direction(),
-					policy == null ? null : policy.length());
+					policy == null ? null : policy.length(),
+					policy == null ? null : policy.fixedValue());
 		}
 	}
 

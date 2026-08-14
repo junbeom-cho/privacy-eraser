@@ -4,6 +4,7 @@ import kr.co.promptech.privacy_eraser.keyword.domain.MaskingDirection;
 import kr.co.promptech.privacy_eraser.keyword.domain.MaskingPolicy;
 import kr.co.promptech.privacy_eraser.review.domain.ColumnDecision;
 import kr.co.promptech.privacy_eraser.review.domain.ColumnDecisionSheet.SheetReadResult;
+import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -30,7 +31,7 @@ class ExcelColumnDecisionSheetTest {
 		try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
 			Sheet s = workbook.createSheet("컬럼 정의서");
 			Row header = s.createRow(0);
-			String[] titles = { "테이블명", "컬럼명", "마스킹", "방식", "방향", "자릿수", "이유" };
+			String[] titles = { "테이블명", "컬럼명", "마스킹", "방식", "방향", "자릿수", "고정값", "이유" };
 			for (int i = 0; i < titles.length; i++) {
 				header.createCell(i).setCellValue(titles[i]);
 			}
@@ -59,7 +60,7 @@ class ExcelColumnDecisionSheetTest {
 	}
 
 	@Test
-	void 양식의_머리글은_정해진_일곱_칸이다() throws Exception {
+	void 양식의_머리글은_정해진_여덟_칸이다() throws Exception {
 		try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(sheet.write()))) {
 			Row header = workbook.getSheetAt(0).getRow(0);
 			assertThat(header.getCell(0).getStringCellValue()).isEqualTo("테이블명");
@@ -68,7 +69,8 @@ class ExcelColumnDecisionSheetTest {
 			assertThat(header.getCell(3).getStringCellValue()).isEqualTo("방식");
 			assertThat(header.getCell(4).getStringCellValue()).isEqualTo("방향");
 			assertThat(header.getCell(5).getStringCellValue()).isEqualTo("자릿수");
-			assertThat(header.getCell(6).getStringCellValue()).isEqualTo("이유");
+			assertThat(header.getCell(6).getStringCellValue()).isEqualTo("고정값");
+			assertThat(header.getCell(7).getStringCellValue()).isEqualTo("이유");
 			assertThat(workbook.getSheetAt(0).getLastRowNum()).isZero();
 		}
 	}
@@ -91,7 +93,7 @@ class ExcelColumnDecisionSheetTest {
 
 	@Test
 	void 마스킹_아님은_정책이_없어도_된다() {
-		SheetReadResult result = sheet.read(sheetOf("EMPLOYEES|ID|N||||"));
+		SheetReadResult result = sheet.read(sheetOf("EMPLOYEES|ID|N|||||"));
 
 		assertThat(result.errors()).isEmpty();
 		assertThat(result.decisions()).containsExactly(new ColumnDecision("EMPLOYEES", "ID", false, null));
@@ -114,7 +116,7 @@ class ExcelColumnDecisionSheetTest {
 
 	@Test
 	void 마스킹인데_정책이_없으면_사유와_함께_알린다() {
-		SheetReadResult result = sheet.read(sheetOf("EMPLOYEES|PHONE|Y||||"));
+		SheetReadResult result = sheet.read(sheetOf("EMPLOYEES|PHONE|Y|||||"));
 
 		assertThat(result.decisions()).isEmpty();
 		assertThat(result.errors()).hasSize(1);
@@ -140,8 +142,8 @@ class ExcelColumnDecisionSheetTest {
 	void 읽은_줄과_못_읽은_줄이_섞여도_읽은_것은_살린다() {
 		SheetReadResult result = sheet.read(sheetOf(
 				"EMPLOYEES|PHONE|Y||뒤에서부터|4|",
-				"EMPLOYEES|BAD|Y|||4|",
-				"EMPLOYEES|ID|N||||"));
+				"EMPLOYEES|BAD|Y|||4||",
+				"EMPLOYEES|ID|N|||||"));
 
 		assertThat(result.decisions()).hasSize(2);
 		assertThat(result.errors()).hasSize(1);
@@ -212,5 +214,54 @@ class ExcelColumnDecisionSheetTest {
 
 		assertThat(result.decisions()).isEmpty();
 		assertThat(result.errors().get(0)).contains("2행").contains("방식");
+	}
+
+	// ===== 고정값 =====
+
+	@Test
+	void 방식에_고정값을_적으면_고정값으로_읽는다() {
+		SheetReadResult result = sheet.read(sheetOf("EMPLOYEES|PHONE|Y|고정값|||01011111111|"));
+
+		assertThat(result.errors()).isEmpty();
+		assertThat(result.decisions()).containsExactly(
+				new ColumnDecision("EMPLOYEES", "PHONE", true, MaskingPolicy.fixed("01011111111")));
+	}
+
+	@Test
+	void 고정값_방식인데_값이_비면_사유와_함께_알린다() {
+		SheetReadResult result = sheet.read(sheetOf("EMPLOYEES|PHONE|Y|고정값||||"));
+
+		assertThat(result.decisions()).isEmpty();
+		assertThat(result.errors().get(0)).contains("2행").contains("고정값");
+	}
+
+	@Test
+	void 작성_방법_시트가_함께_들어간다() throws Exception {
+		// 방식마다 채우는 칸이 달라, 빈 칸으로 두면 올린 뒤에야 왜 안 됐는지 알게 됩니다.
+		try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(sheet.write()))) {
+			assertThat(workbook.getNumberOfSheets()).isEqualTo(2);
+			assertThat(workbook.getSheetAt(1).getSheetName()).isEqualTo("작성 방법");
+		}
+	}
+
+	@Test
+	void 작성_방법에_세_방식이_모두_설명된다() throws Exception {
+		try (Workbook workbook = new XSSFWorkbook(new ByteArrayInputStream(sheet.write()))) {
+			Sheet guide = workbook.getSheetAt(1);
+			StringBuilder all = new StringBuilder();
+			for (Row row : guide) {
+				for (Cell cell : row) {
+					all.append(cell.getStringCellValue()).append('|');
+				}
+			}
+			assertThat(all.toString()).contains("부분 마스킹").contains("해시").contains("고정값");
+		}
+	}
+
+	@Test
+	void 읽을_때는_첫_시트만_본다() {
+		// 작성 방법 시트가 뒤에 있어도 데이터로 읽히면 안 됩니다.
+		assertThat(sheet.read(sheet.write()).decisions()).isEmpty();
+		assertThat(sheet.read(sheet.write()).errors()).isEmpty();
 	}
 }

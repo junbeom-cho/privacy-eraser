@@ -65,7 +65,7 @@ class KeywordMapperSqlTest {
 		Keyword keyword = Keyword.markFor(7L, "phone", MaskingPolicy.partial(MaskingDirection.FROM_END, 4));
 
 		assertThat(boundValues("insert", params(keyword)))
-				.containsExactly(1L, 7L, "phone", KeywordType.DO, MaskingType.PARTIAL, MaskingDirection.FROM_END, 4);
+				.containsExactly(1L, 7L, "phone", KeywordType.DO, MaskingType.PARTIAL, MaskingDirection.FROM_END, 4, null);
 	}
 
 	@Test
@@ -73,6 +73,6 @@ class KeywordMapperSqlTest {
 		Keyword keyword = Keyword.skipFor(7L, "id");
 
 		assertThat(boundValues("insert", params(keyword)))
-				.containsExactly(1L, 7L, "id", KeywordType.UNDO, null, null, null);
+				.containsExactly(1L, 7L, "id", KeywordType.UNDO, null, null, null, null);
 	}
 }

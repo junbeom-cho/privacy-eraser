@@ -58,6 +58,7 @@ function startEdit(keyword: KeywordView) {
     word: keyword.word,
     type: keyword.type,
     maskingType: keyword.maskingType ?? 'PARTIAL',
+    fixedValue: keyword.fixedValue,
     direction: keyword.direction ?? 'FROM_END',
     length: keyword.length ?? 4,
   })
@@ -142,7 +143,8 @@ onMounted(load)
       <strong>컬럼명 전체를 그대로 적어도 됩니다</strong> — <code>OWNR_BMNO</code> 처럼 적으면
       그 이름을 가진 컬럼만 걸립니다. 대소문자는 구분하지 않습니다.
       <strong>Undo 가 우선입니다</strong> — Do 와 Undo 에 함께 걸리면 마스킹에서 제외합니다.
-      PK·UNIQUE 컬럼은 부분 마스킹하면 값이 겹쳐 이관할 수 없습니다. <strong>해시</strong>를 쓰세요.
+      PK·UNIQUE 컬럼은 값이 겹치면 안 되니 <strong>해시</strong>를, 한 컬럼에 형식이 섞여 있으면
+      <strong>고정값</strong>을 쓰세요.
     </div>
 
     <div v-if="notice" class="alert alert-success alert-dismissible" role="status">
@@ -179,7 +181,18 @@ onMounted(load)
               <select v-model="form.maskingType" class="form-select">
                 <option value="PARTIAL">부분 마스킹</option>
                 <option value="HASH">해시</option>
+                <option value="FIXED">고정값</option>
               </select>
+            </div>
+            <!-- 형식이 섞인 컬럼은 위치로 못 맞춥니다. 값 하나로 통일합니다. -->
+            <div v-if="form.maskingType === 'FIXED'" class="col-md-4">
+              <label class="form-label small">고정값</label>
+              <input
+                v-model="form.fixedValue"
+                class="form-control font-mono"
+                required
+                placeholder="01011111111"
+              />
             </div>
             <!-- 해시는 방향도 자릿수도 쓰지 않습니다. -->
             <template v-if="form.maskingType === 'PARTIAL'">

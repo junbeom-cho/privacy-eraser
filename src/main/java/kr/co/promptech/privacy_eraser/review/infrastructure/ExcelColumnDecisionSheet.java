@@ -29,7 +29,8 @@ import java.util.List;
 public class ExcelColumnDecisionSheet implements ColumnDecisionSheet {
 
 	private static final String SHEET_NAME = "컬럼 정의서";
-	private static final String[] HEADERS = { "테이블명", "컬럼명", "마스킹", "방식", "방향", "자릿수", "이유" };
+	private static final String[] HEADERS =
+			{ "테이블명", "컬럼명", "마스킹", "방식", "방향", "자릿수", "고정값", "이유" };
 
 	private static final int TABLE = 0;
 	private static final int COLUMN = 1;
@@ -37,6 +38,7 @@ public class ExcelColumnDecisionSheet implements ColumnDecisionSheet {
 	private static final int TYPE = 3;
 	private static final int DIRECTION = 4;
 	private static final int LENGTH = 5;
+	private static final int FIXED_VALUE = 6;
 
 	/** 손으로 채우는 칸이라 고를 수 있게 해 둡니다. 오타 한 글자에 그 줄이 통째로 빠집니다. */
 	private static final String[] MASKED_CHOICES = { "Y", "N" };
@@ -46,6 +48,7 @@ public class ExcelColumnDecisionSheet implements ColumnDecisionSheet {
 	private static final String FROM_END = "뒤에서부터";
 	private static final String PARTIAL = "부분 마스킹";
 	private static final String HASH = "해시";
+	private static final String FIXED = "고정값";
 
 	/**
 	 * 머리글만 있는 빈 양식입니다. 작업자가 채워서 올리면 <b>적힌 줄만</b> 반영합니다.
@@ -64,6 +67,7 @@ public class ExcelColumnDecisionSheet implements ColumnDecisionSheet {
 				sheet.setColumnWidth(i, 18 * 256);
 			}
 			sheet.createFreezePane(0, 1);
+			writeGuide(workbook);
 			workbook.write(out);
 			return out.toByteArray();
 		}
@@ -72,11 +76,56 @@ public class ExcelColumnDecisionSheet implements ColumnDecisionSheet {
 		}
 	}
 
+	/**
+	 * 방식마다 채워야 하는 칸이 다릅니다. 빈 칸으로 두면 왜 안 됐는지 올린 뒤에야 알게 되므로
+	 * 파일 안에 적어 둡니다.
+	 */
+	private static void writeGuide(Workbook workbook) {
+		Sheet guide = workbook.createSheet("작성 방법");
+		String[][] rows = {
+			{ "방식", "채우는 칸", "비우는 칸", "결과", "언제 쓰나" },
+			{ PARTIAL, "방향, 자릿수", "고정값", "010-1234-****",
+					"대부분의 컬럼. 원본 형태를 일부 남깁니다" },
+			{ HASH, "(없음)", "방향, 자릿수, 고정값", "3f2a9c… (64자)",
+					"PK·UNIQUE 컬럼. 값이 겹치지 않아야 할 때" },
+			{ FIXED, "고정값", "방향, 자릿수", "01011111111",
+					"한 컬럼에 형식이 섞여 있을 때 (010-1234-5678 과 01012345678)" },
+			{ "", "", "", "", "" },
+			{ "마스킹 = N", "(없음)", "나머지 전부", "원본 그대로", "비식별화하지 않을 컬럼" },
+			{ "", "", "", "", "" },
+			{ "주의", "", "", "", "" },
+			{ "", "방식을 비워두면 '%s' 으로 봅니다".formatted(PARTIAL), "", "", "" },
+			{ "", "테이블명·컬럼명은 원본에 있는 이름과 정확히 같아야 합니다", "", "", "" },
+			{ "", "적지 않은 컬럼은 손대지 않습니다", "", "", "" },
+			{ "", "고정값이 컬럼 길이보다 길면 이관이 실패합니다", "", "", "" },
+		};
+		Font bold = workbook.createFont();
+		bold.setBold(true);
+		CellStyle header = workbook.createCellStyle();
+		header.setFont(bold);
+
+		for (int r = 0; r < rows.length; r++) {
+			Row row = guide.createRow(r);
+			for (int c = 0; c < rows[r].length; c++) {
+				Cell cell = row.createCell(c);
+				cell.setCellValue(rows[r][c]);
+				if (r == 0 || rows[r][0].equals("주의")) {
+					cell.setCellStyle(header);
+				}
+			}
+		}
+		guide.setColumnWidth(0, 14 * 256);
+		guide.setColumnWidth(1, 46 * 256);
+		guide.setColumnWidth(2, 24 * 256);
+		guide.setColumnWidth(3, 20 * 256);
+		guide.setColumnWidth(4, 56 * 256);
+	}
+
 	/** 마스킹·방향은 정해진 값만 받으므로 엑셀에서 목록으로 고르게 합니다. */
 	private static void addChoices(Sheet sheet) {
 		DataValidationHelper helper = sheet.getDataValidationHelper();
 		addChoice(sheet, helper, MASKED, MASKED_CHOICES);
-		addChoice(sheet, helper, TYPE, new String[] { PARTIAL, HASH });
+		addChoice(sheet, helper, TYPE, new String[] { PARTIAL, HASH, FIXED });
 		addChoice(sheet, helper, DIRECTION, new String[] { FROM_START, FROM_END });
 	}
 
@@ -157,8 +206,16 @@ public class ExcelColumnDecisionSheet implements ColumnDecisionSheet {
 		if (type.equals(HASH) || type.equalsIgnoreCase("HASH")) {
 			return MaskingPolicy.hash();
 		}
+		if (type.equals(FIXED) || type.equalsIgnoreCase("FIXED")) {
+			String value = text(row, FIXED_VALUE).strip();
+			if (value.isBlank()) {
+				throw new IllegalArgumentException("'%s' 방식에는 고정값 칸을 채워야 합니다.".formatted(FIXED));
+			}
+			return MaskingPolicy.fixed(value);
+		}
 		if (!type.isBlank() && !type.equals(PARTIAL) && !type.equalsIgnoreCase("PARTIAL")) {
-			throw new IllegalArgumentException("방식은 '%s' 또는 '%s' 여야 합니다.".formatted(PARTIAL, HASH));
+			throw new IllegalArgumentException(
+					"방식은 '%s', '%s', '%s' 중 하나여야 합니다.".formatted(PARTIAL, HASH, FIXED));
 		}
 		return MaskingPolicy.partial(direction(text(row, DIRECTION)), length(row));
 	}

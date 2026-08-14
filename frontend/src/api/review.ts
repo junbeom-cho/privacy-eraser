@@ -15,6 +15,7 @@ export interface ColumnReviewView {
   uniqueConflict: boolean
   masked: boolean
   maskingType: MaskingType | null
+  fixedValue: string | null
   direction: MaskingDirection | null
   length: number | null
   source: DecisionSource
@@ -75,6 +76,7 @@ export function overrideColumn(
   body: {
     masked: boolean
     maskingType: MaskingType | null
+    fixedValue: string | null
     direction: MaskingDirection | null
     length: number | null
   },

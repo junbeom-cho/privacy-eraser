@@ -100,4 +100,26 @@ class OracleMaskExpressionTest {
 		assertThat(OracleMaskExpression.of("PHONE", MaskingPolicy.partial(MaskingDirection.FROM_END, 4), null))
 				.contains("SUBSTR");
 	}
+
+	// ===== 고정값 =====
+
+	@Test
+	void 고정값은_NULL_만_빼고_전부_같은_값이_된다() {
+		String sql = OracleMaskExpression.of("TELNO", MaskingPolicy.fixed("01011111111"), null);
+
+		assertThat(sql).isEqualTo("CASE WHEN \"TELNO\" IS NULL THEN NULL ELSE '01011111111' END");
+	}
+
+	@Test
+	void 고정값의_따옴표는_이스케이프한다() {
+		// 값은 사용자가 입력합니다. 그대로 이어붙이면 SQL 이 깨집니다.
+		assertThat(OracleMaskExpression.of("NM", MaskingPolicy.fixed("O'Brien"), null))
+				.contains("'O''Brien'");
+	}
+
+	@Test
+	void 고정값에는_솔트가_필요_없다() {
+		assertThat(OracleMaskExpression.of("TELNO", MaskingPolicy.fixed("010"), null))
+				.doesNotContain("STANDARD_HASH");
+	}
 }

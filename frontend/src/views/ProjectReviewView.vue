@@ -80,9 +80,14 @@ async function apply(row: ColumnReviewView, change: Partial<ColumnReviewView>) {
       await overrideColumn(projectId, row.tableName, row.columnName, {
         masked: next.masked,
         maskingType: next.masked ? (next.maskingType ?? 'PARTIAL') : null,
-        // 해시는 방향도 자릿수도 쓰지 않습니다.
-        direction: next.masked && next.maskingType !== 'HASH' ? (next.direction ?? 'FROM_END') : null,
-        length: next.masked && next.maskingType !== 'HASH' ? (next.length ?? 4) : null,
+        // 방식마다 쓰는 칸이 다릅니다. 안 쓰는 칸을 보내면 서버가 거부합니다.
+        fixedValue: next.masked && next.maskingType === 'FIXED' ? (next.fixedValue ?? '') : null,
+        direction:
+          next.masked && (next.maskingType ?? 'PARTIAL') === 'PARTIAL'
+            ? (next.direction ?? 'FROM_END')
+            : null,
+        length:
+          next.masked && (next.maskingType ?? 'PARTIAL') === 'PARTIAL' ? (next.length ?? 4) : null,
       }),
     )
   } catch (e) {
@@ -202,7 +207,9 @@ onMounted(load)
                   <span
                     v-if="row.policyExceedsLength"
                     class="badge text-bg-warning ms-1 fw-normal"
-                    title="정책이 컬럼 길이보다 깁니다. 값 전체가 가려질 수 있습니다."
+                    :title="row.maskingType === 'FIXED'
+                      ? '고정값이 컬럼 길이보다 깁니다. 이관이 실패합니다.'
+                      : '정책이 컬럼 길이보다 깁니다. 값 전체가 가려질 수 있습니다.'"
                   >길이 초과</span>
                 </td>
                 <td class="font-mono text-body-secondary">{{ row.type }}</td>
@@ -230,9 +237,19 @@ onMounted(load)
                     >
                       <option value="PARTIAL">{{ MASKING_TYPE_LABEL.PARTIAL }}</option>
                       <option value="HASH">{{ MASKING_TYPE_LABEL.HASH }}</option>
+                      <option value="FIXED">{{ MASKING_TYPE_LABEL.FIXED }}</option>
                     </select>
+                    <!-- 형식이 섞인 컬럼은 위치로 못 맞춰 값 하나로 통일합니다. -->
+                    <input
+                      v-if="row.maskingType === 'FIXED'"
+                      class="form-control form-control-sm font-mono"
+                      placeholder="01011111111"
+                      :value="row.fixedValue ?? ''"
+                      :disabled="savingKey === keyOf(row)"
+                      @change="apply(row, { fixedValue: ($event.target as HTMLInputElement).value })"
+                    />
                     <!-- 해시는 방향도 자릿수도 쓰지 않습니다. -->
-                    <template v-if="row.maskingType !== 'HASH'">
+                    <template v-else-if="row.maskingType !== 'HASH'">
                       <select
                         class="form-select form-select-sm"
                         :value="row.direction ?? 'FROM_END'"

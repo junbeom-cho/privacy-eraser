@@ -6,7 +6,7 @@ import kr.co.promptech.privacy_eraser.keyword.domain.MaskingType;
 import kr.co.promptech.privacy_eraser.review.domain.ColumnOverride;
 
 public record ColumnOverrideRow(Long overrideId, Long projectId, String tableName, String columnName,
-		boolean masked, String maskType, String maskDirection, Integer maskLength) {
+		boolean masked, String maskType, String maskDirection, Integer maskLength, String maskValue) {
 
 	ColumnOverride toDomain() {
 		return new ColumnOverride(overrideId, projectId, tableName, columnName, masked, toPolicy());
@@ -17,8 +17,10 @@ public record ColumnOverrideRow(Long overrideId, Long projectId, String tableNam
 		if (maskType == null) {
 			return null;
 		}
-		return MaskingType.valueOf(maskType) == MaskingType.HASH
-				? MaskingPolicy.hash()
-				: MaskingPolicy.partial(MaskingDirection.valueOf(maskDirection), maskLength);
+		return switch (MaskingType.valueOf(maskType)) {
+			case HASH -> MaskingPolicy.hash();
+			case FIXED -> MaskingPolicy.fixed(maskValue);
+			case PARTIAL -> MaskingPolicy.partial(MaskingDirection.valueOf(maskDirection), maskLength);
+		};
 	}
 }

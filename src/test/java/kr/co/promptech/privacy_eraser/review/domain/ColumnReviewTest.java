@@ -42,4 +42,20 @@ class ColumnReviewTest {
 		// 솔트가 이관 시점에 정해지기 때문입니다.
 		assertThat(review(MaskingPolicy.hash(), "abc").maskedSample()).isNull();
 	}
+
+	@Test
+	void 고정값이_컬럼보다_길면_알린다() {
+		// 컬럼이 VARCHAR2(5) 인데 고정값이 11자면 적재 중 ORA-12899 로 실패합니다.
+		assertThat(review(MaskingPolicy.fixed("01011111111"), "abc").policyExceedsColumnLength()).isTrue();
+	}
+
+	@Test
+	void 고정값이_컬럼_안에_들어가면_경고하지_않는다() {
+		assertThat(review(MaskingPolicy.fixed("010"), "abc").policyExceedsColumnLength()).isFalse();
+	}
+
+	@Test
+	void 고정값은_형식과_무관하게_같은_결과를_미리_보여준다() {
+		assertThat(review(MaskingPolicy.fixed("010"), "02-123-4567").maskedSample()).isEqualTo("010");
+	}
 }

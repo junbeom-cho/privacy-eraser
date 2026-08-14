@@ -111,7 +111,7 @@ public class ReviewRestController {
 	}
 
 	public record OverrideRequest(boolean masked, MaskingType maskingType,
-			MaskingDirection direction, Integer length) {
+			MaskingDirection direction, Integer length, String fixedValue) {
 
 		SaveOverrideCommand toCommand(String tableName, String columnName) {
 			return new SaveOverrideCommand(tableName, columnName, masked, toPolicy());
@@ -123,6 +123,9 @@ public class ReviewRestController {
 			}
 			if (maskingType == MaskingType.HASH) {
 				return MaskingPolicy.hash();
+			}
+			if (maskingType == MaskingType.FIXED) {
+				return MaskingPolicy.fixed(fixedValue);
 			}
 			if (direction == null || length == null) {
 				throw new IllegalArgumentException("마스킹 대상에는 방향과 개수가 필요합니다.");
@@ -137,7 +140,7 @@ public class ReviewRestController {
 	 */
 	public record ColumnReviewResponse(String tableName, String columnName, String type, boolean nullable,
 			List<String> tokens, Set<ColumnKey> keys, boolean uniqueConflict,
-			boolean masked, MaskingType maskingType, MaskingDirection direction, Integer length,
+			boolean masked, MaskingType maskingType, MaskingDirection direction, Integer length, String fixedValue,
 			DecisionSource source, String matchedKeyword, boolean policyExceedsLength,
 			String sample, String maskedSample, boolean sampleFullyMasked) {
 
@@ -158,6 +161,7 @@ public class ReviewRestController {
 					policy == null ? null : policy.type(),
 					policy == null ? null : policy.direction(),
 					policy == null ? null : policy.length(),
+					policy == null ? null : policy.fixedValue(),
 					review.decision().source(),
 					review.decision().matchedKeyword(),
 					review.policyExceedsColumnLength(),

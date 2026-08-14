@@ -10,7 +10,7 @@ import kr.co.promptech.privacy_eraser.keyword.domain.MaskingType;
  * keyword 테이블 한 행입니다. 정책이 여러 컬럼으로 흩어져 있어 조회 후 조립합니다.
  */
 public record KeywordRow(Long keywordId, Long projectId, String word, String keywordType,
-		String maskType, String maskDirection, Integer maskLength) {
+		String maskType, String maskDirection, Integer maskLength, String maskValue) {
 
 	Keyword toDomain() {
 		return new Keyword(keywordId, projectId, word, KeywordType.valueOf(keywordType), toPolicy());
@@ -21,8 +21,10 @@ public record KeywordRow(Long keywordId, Long projectId, String word, String key
 		if (maskType == null) {
 			return null;
 		}
-		return MaskingType.valueOf(maskType) == MaskingType.HASH
-				? MaskingPolicy.hash()
-				: MaskingPolicy.partial(MaskingDirection.valueOf(maskDirection), maskLength);
+		return switch (MaskingType.valueOf(maskType)) {
+			case HASH -> MaskingPolicy.hash();
+			case FIXED -> MaskingPolicy.fixed(maskValue);
+			case PARTIAL -> MaskingPolicy.partial(MaskingDirection.valueOf(maskDirection), maskLength);
+		};
 	}
 }

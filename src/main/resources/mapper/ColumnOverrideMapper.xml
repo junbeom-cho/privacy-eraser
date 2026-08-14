@@ -13,11 +13,12 @@
 			<arg column="mask_type" javaType="java.lang.String"/>
 			<arg column="mask_direction" javaType="java.lang.String"/>
 			<arg column="mask_length" javaType="java.lang.Integer"/>
+			<arg column="mask_value" javaType="java.lang.String"/>
 		</constructor>
 	</resultMap>
 
 	<sql id="columns">
-		override_id, project_id, table_name, column_name, masked, mask_type, mask_direction, mask_length
+		override_id, project_id, table_name, column_name, masked, mask_type, mask_direction, mask_length, mask_value
 	</sql>
 
 	<select id="nextOverrideId" resultType="long">
@@ -36,12 +37,13 @@
 	</select>
 
 	<insert id="insert">
-		INSERT INTO column_override (override_id, project_id, table_name, column_name, masked, mask_type, mask_direction, mask_length)
+		INSERT INTO column_override (override_id, project_id, table_name, column_name, masked, mask_type, mask_direction, mask_length, mask_value)
 		VALUES (
 			#{id}, #{override.projectId}, #{override.tableName}, #{override.columnName}, #{override.masked},
 			<!-- 마스킹하지 않기로 했으면 정책이 null 입니다. jdbcType 이 없으면 드라이버가 타입을 몰라 실패합니다. -->
 			#{override.policy.type,jdbcType=VARCHAR},
-			#{override.policy.direction,jdbcType=VARCHAR}, #{override.policy.length,jdbcType=INTEGER}
+			#{override.policy.direction,jdbcType=VARCHAR}, #{override.policy.length,jdbcType=INTEGER},
+			#{override.policy.fixedValue,jdbcType=VARCHAR}
 		)
 	</insert>
 
@@ -50,7 +52,8 @@
 			masked         = #{override.masked},
 			mask_type      = #{override.policy.type,jdbcType=VARCHAR},
 			mask_direction = #{override.policy.direction,jdbcType=VARCHAR},
-			mask_length    = #{override.policy.length,jdbcType=INTEGER}
+			mask_length    = #{override.policy.length,jdbcType=INTEGER},
+			mask_value     = #{override.policy.fixedValue,jdbcType=VARCHAR}
 		WHERE override_id = #{override.id}
 	</update>
 
