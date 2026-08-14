@@ -55,23 +55,14 @@ async function onPicked(event: Event) {
       <div class="card-header fw-semibold">① 양식 받기</div>
       <div class="card-body">
         <p class="text-body-secondary small">
-          머리글만 있는 빈 파일입니다. <code>마스킹</code> 과 <code>방향</code> 은 엑셀에서
-          목록으로 고를 수 있습니다.
+          머리글만 있는 빈 파일입니다. 방식마다 채우는 칸이 달라, 파일 안 <code>작성 방법</code> 을
+          함께 보세요.
         </p>
-        <div class="table-responsive mb-3">
-          <table class="table table-sm table-bordered small mb-0 font-mono">
-            <thead>
-              <tr class="text-body-secondary">
-                <th>테이블명</th><th>컬럼명</th><th>마스킹</th><th>방향</th><th>자릿수</th><th>이유</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr class="text-body-secondary">
-                <td>EMPLOYEES</td><td>PHONE_NUMBER</td><td>Y</td><td>뒤에서부터</td><td>4</td><td>연락처</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <!-- 양식 파일은 코드 밖에 있습니다. 여기서 표를 그대로 흉내 내면 파일을 고칠 때마다 어긋납니다. -->
+        <ul class="text-body-secondary small mb-3 ps-3">
+          <li><code>테이블명</code>, <code>컬럼명</code>, <code>마스킹</code> 은 반드시 있어야 합니다</li>
+          <li>열 순서를 바꾸거나 칸을 더 넣어도 됩니다 — 머리글을 이름으로 찾습니다</li>
+        </ul>
         <a :href="sheetUrl(projectId)" class="btn btn-outline-secondary">양식 내려받기</a>
       </div>
     </div>

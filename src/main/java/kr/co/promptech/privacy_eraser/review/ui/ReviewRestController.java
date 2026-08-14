@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
 
@@ -33,6 +34,9 @@ import java.util.Set;
 @RestController
 @RequestMapping("/api/projects/{projectId}/review")
 public class ReviewRestController {
+
+	/** 작업자가 받는 이름입니다. 클래스패스의 파일명과 달라도 됩니다. */
+	private static final String SHEET_FILE_NAME = "비식별화_컬럼_목록.xlsx";
 
 	private final ReviewService reviewService;
 
@@ -45,16 +49,19 @@ public class ReviewRestController {
 	 * 컬럼 정의서 양식입니다. 머리글만 있고 나머지는 작업자가 채웁니다.
 	 * <p>
 	 * 채워서 올리면 <b>적힌 줄만</b> 반영합니다. 적지 않은 컬럼은 손대지 않습니다.
+	 * <p>
+	 * 내려받는 이름은 클래스패스에 둔 파일명과 <b>다릅니다.</b> 파일은 도구를 덜 타도록 영어로 두고,
+	 * 사람이 받는 이름은 여기서 한글로 정합니다. 프로젝트와 무관하게 같은 파일이라 번호를 붙이지 않습니다.
 	 */
 	@GetMapping("/sheet")
-	public ResponseEntity<byte[]> sheet(@PathVariable Long projectId) {
-		byte[] file = reviewService.decisionSheet();
-		String name = "column-decisions-%d.xlsx".formatted(projectId);
+	public ResponseEntity<byte[]> sheet() {
 		return ResponseEntity.ok()
 				.header(HttpHeaders.CONTENT_DISPOSITION,
-						ContentDisposition.attachment().filename(name).build().toString())
+						// 한글 이름은 UTF-8 을 지정해야 filename* 이 함께 나갑니다. 없으면 브라우저에서 깨집니다.
+						ContentDisposition.attachment()
+								.filename(SHEET_FILE_NAME, StandardCharsets.UTF_8).build().toString())
 				.contentType(MediaType.APPLICATION_OCTET_STREAM)
-				.body(file);
+				.body(reviewService.decisionSheet());
 	}
 
 	/**
