@@ -2,6 +2,7 @@ package kr.co.promptech.privacy_eraser.migration.application;
 
 import kr.co.promptech.privacy_eraser.keyword.domain.MaskingType;
 import kr.co.promptech.privacy_eraser.migration.domain.ColumnMaskingStat;
+import kr.co.promptech.privacy_eraser.migration.domain.CommentDefinition;
 import kr.co.promptech.privacy_eraser.migration.domain.ConstraintDefinition;
 import kr.co.promptech.privacy_eraser.migration.domain.ConstraintType;
 import kr.co.promptech.privacy_eraser.migration.domain.MaskingConflicts;
@@ -10,6 +11,7 @@ import kr.co.promptech.privacy_eraser.migration.domain.SourceObjectReader;
 import kr.co.promptech.privacy_eraser.migration.domain.MigrationRun;
 import kr.co.promptech.privacy_eraser.migration.domain.MigrationRunRepository;
 import kr.co.promptech.privacy_eraser.migration.domain.MigrationTarget;
+import kr.co.promptech.privacy_eraser.project.domain.DbConnection;
 import kr.co.promptech.privacy_eraser.project.domain.Project;
 import kr.co.promptech.privacy_eraser.project.domain.ProjectNotFoundException;
 import kr.co.promptech.privacy_eraser.project.domain.ProjectRepository;
@@ -25,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Executor;
+import java.util.stream.Collectors;
 
 /**
  * 검수에서 확정된 결정대로 원본을 이관 대상으로 옮깁니다.
@@ -128,8 +131,20 @@ public class MigrationService {
 		constraints.stream().filter(c -> c.type() == ConstraintType.FOREIGN_KEY)
 				.forEach(constraint -> executor.addConstraint(edit, constraint));
 
-		sourceObjectReader.readComments(raw).forEach(comment -> executor.applyComment(edit, comment));
+		// 코멘트는 여기 없습니다. 테이블을 만든 자리에서 이미 붙였습니다.
 		sourceObjectReader.readSequences(raw).forEach(sequence -> executor.createSequence(edit, sequence));
+	}
+
+	/**
+	 * 원본의 코멘트를 테이블명으로 묶습니다.
+	 * <p>
+	 * 이관하는 테이블에만 붙이기 위해서입니다. {@code ALL_TAB_COMMENTS} 에는 <b>뷰의 코멘트도</b>
+	 * 섞여 있는데, 뷰는 이관하지 않으므로 그대로 달려들면 {@code ORA-00942} 로 이관 전체가 실패합니다.
+	 * 대상 테이블 이름으로 꺼내 쓰면 없는 것은 자연히 빠집니다.
+	 */
+	private Map<String, List<CommentDefinition>> commentsByTable(DbConnection raw) {
+		return sourceObjectReader.readComments(raw).stream()
+				.collect(Collectors.groupingBy(CommentDefinition::tableName));
 	}
 
 	private List<MigrationTarget> plan(Long projectId) {
@@ -154,6 +169,11 @@ public class MigrationService {
 		try {
 			// 문장마다 접속을 새로 열면 수천 번이 되어 리스너가 거부합니다(ORA-12516).
 			executor.openSession(project.getEditConnection());
+
+			// 테이블별로 미리 나눠 둡니다. 원본 전체를 한 번만 읽고 아래 반복문에서 꺼내 씁니다.
+			Map<String, List<CommentDefinition>> comments =
+					commentsByTable(project.getRawConnection());
+
 			for (MigrationTarget target : targets) {
 				run.working(target.tableName());
 				runRepository.update(run);
@@ -161,6 +181,11 @@ public class MigrationService {
 				// 지우는 범위를 원본에 있는 테이블로 한정해, 접속을 잘못 넣었을 때 피해를 줄입니다.
 				executor.dropIfExists(project.getEditConnection(), target.tableName());
 				executor.createAndCopy(project.getRawConnection(), project.getEditConnection(), target);
+
+				// 테이블을 만든 자리에서 바로 붙입니다. 뒤의 인덱스·제약조건이 실패해도
+				// 이미 만들어진 테이블은 코멘트를 갖습니다.
+				comments.getOrDefault(target.tableName(), List.of())
+						.forEach(comment -> executor.applyComment(project.getEditConnection(), comment));
 
 				run.tableDone();
 				runRepository.update(run);

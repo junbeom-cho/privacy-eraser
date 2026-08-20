@@ -142,9 +142,10 @@ class MigrationServiceTest {
 
 		service.start(1L);
 
-		assertThat(executor.applied).containsExactly(
-				"INDEX EMP_NAME_IX", "PRIMARY_KEY EMP_PK", "FOREIGN_KEY EMP_FK",
-				"COMMENT EMPLOYEES", "SEQUENCE EMP_SEQ");
+		// 코멘트는 테이블마다 앞에서 붙습니다. 순서는 따로 검증하므로 여기서는 뺍니다.
+		assertThat(executor.applied.stream().filter(s -> !s.startsWith("COMMENT")).toList())
+				.containsExactly("INDEX EMP_NAME_IX", "PRIMARY_KEY EMP_PK", "FOREIGN_KEY EMP_FK",
+						"SEQUENCE EMP_SEQ");
 	}
 
 	@Test
@@ -227,6 +228,44 @@ class MigrationServiceTest {
 		service.start(1L);
 
 		assertThat(executor.sessionsClosed).isEqualTo(1);
+	}
+
+	// ===== 코멘트 =====
+
+	@Test
+	void 코멘트는_테이블을_만든_자리에서_바로_붙인다() {
+		// 뒤의 인덱스·제약조건보다 먼저여야 그쪽이 실패해도 코멘트가 남습니다.
+		service.start(1L);
+
+		assertThat(executor.applied).containsSubsequence("COMMENT EMPLOYEES", "INDEX EMP_NAME_IX");
+	}
+
+	@Test
+	void 제약조건이_실패해도_이미_만든_테이블의_코멘트는_남는다() {
+		// 코멘트를 마지막에 붙이면 앞 단계가 실패할 때 통째로 날아갑니다.
+		source.constraints = List.of(new ConstraintDefinition("EMPLOYEES", "EMP_PK",
+				ConstraintType.PRIMARY_KEY, List.of("EMPLOYEE_ID"), null, null, List.of(), null));
+		executor.failOn = "EMP_PK";
+
+		service.start(1L);
+
+		assertThat(executor.applied).contains("COMMENT EMPLOYEES");
+	}
+
+	@Test
+	void 이관하지_않는_테이블에는_코멘트를_붙이지_않는다() {
+		// ALL_TAB_COMMENTS 에 뷰가 섞여 옵니다. 그대로 달려들면 ORA-00942 로 이관 전체가 죽습니다.
+		service.start(1L);
+
+		assertThat(executor.applied).doesNotContain("COMMENT V_NOT_MIGRATED");
+	}
+
+	@Test
+	void 테이블_코멘트와_컬럼_코멘트를_모두_붙인다() {
+		service.start(1L);
+
+		assertThat(executor.applied.stream().filter(s -> s.equals("COMMENT EMPLOYEES")).count())
+				.isEqualTo(2);
 	}
 
 	@Test
@@ -325,7 +364,11 @@ class MigrationServiceTest {
 
 		@Override
 		public List<CommentDefinition> readComments(DbConnection raw) {
-			return List.of(new CommentDefinition("EMPLOYEES", null, "직원"));
+			// ALL_TAB_COMMENTS 에는 뷰의 코멘트도 섞여 있습니다. 뷰는 이관하지 않으므로
+			// 이관 대상에 없는 이름을 하나 끼워 둡니다.
+			return List.of(new CommentDefinition("EMPLOYEES", null, "직원"),
+					new CommentDefinition("EMPLOYEES", "EMAIL", "이메일"),
+					new CommentDefinition("V_NOT_MIGRATED", null, "이관하지 않는 뷰"));
 		}
 
 		@Override
