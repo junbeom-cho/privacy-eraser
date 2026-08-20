@@ -121,12 +121,12 @@ class ExcelColumnDecisionSheetTest {
 	@Test
 	void 머리글을_찾지_못하면_한_줄도_읽지_않고_알린다() {
 		// 전부 비대상으로 읽히면 아무 일도 없었던 것처럼 보입니다. 그게 제일 위험합니다.
-		String[] missing = { "테이블명", "컬럼명" };
-		SheetReadResult result = sheet.read(sheetOf(missing, 0, "EMPLOYEES|PHONE"));
+		String[] missing = { "테이블명", "방식", "방향" };
+		SheetReadResult result = sheet.read(sheetOf(missing, 0, "EMPLOYEES|부분 마스킹|뒤에서부터"));
 
 		assertThat(result.decisions()).isEmpty();
 		assertThat(result.errors()).hasSize(1);
-		assertThat(result.errors().get(0)).contains("머리글").contains("마스킹");
+		assertThat(result.errors().get(0)).contains("머리글").contains("컬럼명");
 	}
 
 	// ===== 읽기 =====
@@ -283,6 +283,42 @@ class ExcelColumnDecisionSheetTest {
 
 		assertThat(result.decisions()).isEmpty();
 		assertThat(result.errors().get(0)).contains("2행").contains("고정값");
+	}
+
+	@Test
+	void 마스킹_칸이_없으면_적힌_줄은_모두_대상이다() {
+		// 적은 줄만 반영하므로, 줄이 있다는 것 자체가 대상이라는 뜻입니다.
+		try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+			Sheet s = workbook.createSheet("컬럼 정의서");
+			Row header = s.createRow(0);
+			String[] titles = { "테이블명", "컬럼명", "방식", "방향", "자릿수", "고정값", "이유" };
+			for (int i = 0; i < titles.length; i++) {
+				header.createCell(i).setCellValue(titles[i]);
+			}
+			Row row = s.createRow(1);
+			for (String v : new String[] { "EMPLOYEES", "PHONE", "부분 마스킹", "뒤에서부터", "4", "", "" }) {
+				row.createCell(row.getPhysicalNumberOfCells()).setCellValue(v);
+			}
+			workbook.write(out);
+
+			SheetReadResult result = sheet.read(out.toByteArray());
+
+			assertThat(result.errors()).isEmpty();
+			assertThat(result.decisions())
+					.containsExactly(new ColumnDecision("EMPLOYEES", "PHONE", true, 뒤_4자리));
+		}
+		catch (Exception e) {
+			throw new IllegalStateException(e);
+		}
+	}
+
+	@Test
+	void 마스킹_칸이_있고_비어_있으면_대상으로_본다() {
+		// 칸을 지우지 않고 그냥 안 채운 경우입니다. 적었으니 대상으로 봅니다.
+		SheetReadResult result = sheet.read(sheetOf("EMPLOYEES|PHONE||부분 마스킹|뒤에서부터|4||"));
+
+		assertThat(result.errors()).isEmpty();
+		assertThat(result.decisions()).containsExactly(new ColumnDecision("EMPLOYEES", "PHONE", true, 뒤_4자리));
 	}
 
 	@Test

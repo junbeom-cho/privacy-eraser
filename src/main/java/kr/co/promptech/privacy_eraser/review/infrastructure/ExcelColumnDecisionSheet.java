@@ -46,8 +46,13 @@ public class ExcelColumnDecisionSheet implements ColumnDecisionSheet {
 	private static final String LENGTH = "자릿수";
 	private static final String FIXED_VALUE = "고정값";
 
-	/** 이 셋이 없으면 파일 전체를 읽을 수 없습니다. 나머지는 방식에 따라 비어 있어도 됩니다. */
-	private static final List<String> REQUIRED = List.of(TABLE, COLUMN, MASKED);
+	/**
+	 * 이 둘이 없으면 파일 전체를 읽을 수 없습니다. 나머지는 방식에 따라 비어 있어도 됩니다.
+	 * <p>
+	 * {@code 마스킹} 은 필수가 아닙니다. 적은 줄만 반영하므로 <b>줄이 있다는 것 자체가 대상이라는 뜻</b>이고,
+	 * 칸이 없으면 전부 대상으로 봅니다. 칸을 두면 {@code N} 으로 비대상을 따로 적을 수 있습니다.
+	 */
+	private static final List<String> REQUIRED = List.of(TABLE, COLUMN);
 
 	/** 머리글이 표 맨 위에 없을 수 있습니다. 제목·안내 줄을 위에 두는 것이 보통입니다. */
 	private static final int HEADER_SEARCH_ROWS = 20;
@@ -169,8 +174,9 @@ public class ExcelColumnDecisionSheet implements ColumnDecisionSheet {
 			throw new IllegalArgumentException("컬럼명이 비어 있습니다.");
 		}
 
-		boolean masked = header.text(row, MASKED).strip().equalsIgnoreCase("Y");
-		if (!masked) {
+		// 칸이 아예 없으면 적힌 줄은 전부 대상입니다. 있으면 적힌 값을 따르고, 비워두면 대상으로 봅니다.
+		String masked = header.text(row, MASKED).strip();
+		if (masked.equalsIgnoreCase("N")) {
 			return new ColumnDecision(table, column, false, null);
 		}
 		return new ColumnDecision(table, column, true, policy(header, row));
